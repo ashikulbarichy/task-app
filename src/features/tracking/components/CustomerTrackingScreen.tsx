@@ -22,11 +22,62 @@ type Props = NativeStackScreenProps<RootStackParamList, "CustomerTracking">;
 type SyncStrategy = "polling" | "websocket";
 
 const DEFAULT_REGION: Region = {
-  latitude: 37.7749,
-  longitude: -122.4194,
-  latitudeDelta: 0.02,
-  longitudeDelta: 0.02,
+  latitude: 23.8103,
+  longitude: 90.4125,
+  latitudeDelta: 0.06,
+  longitudeDelta: 0.06,
 };
+
+// Calculating real-time distance and ETA
+function calculateLiveEta(
+  driverLat?: number | null,
+  driverLon?: number | null,
+  destLat?: number | null,
+  destLon?: number | null,
+  speedMs?: number | null,
+  status?: string,
+): string {
+  if (status === "completed") {
+    return "Delivered ✓";
+  }
+  if (status === "arrived") {
+    return "Arrived at destination!";
+  }
+  if (!driverLat || !driverLon || !destLat || !destLon) {
+    return "Calculating ETA…";
+  }
+
+  const R = 6371;
+  const dLat = ((destLat - driverLat) * Math.PI) / 180;
+  const dLon = ((destLon - driverLon) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((driverLat * Math.PI) / 180) *
+      Math.cos((destLat * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const straightKm = R * c;
+
+  if (straightKm < 0.1) {
+    return "Arriving now (< 1 min)";
+  }
+
+  const roadKm = straightKm * 1.3;
+  const speedKmh = speedMs && speedMs > 2 ? speedMs * 3.6 : 18;
+  const minutes = Math.max(1, Math.round((roadKm / speedKmh) * 60));
+
+  const distanceStr =
+    roadKm < 1 ? `${Math.round(roadKm * 1000)}m away` : `${roadKm.toFixed(1)} km away`;
+
+  if (minutes >= 60) {
+    const hrs = Math.floor(minutes / 60);
+    const remMins = minutes % 60;
+    return `${hrs} hr ${remMins} mins (${distanceStr})`;
+  }
+
+  return `${minutes} mins (${distanceStr})`;
+}
 
 // Rendering customer tracking screen
 export function CustomerTrackingScreen({ route, navigation }: Props) {
@@ -213,11 +264,14 @@ export function CustomerTrackingScreen({ route, navigation }: Props) {
           <View>
             <Text style={styles.etaLabel}>Estimated Arrival</Text>
             <Text style={styles.etaValue}>
-              {delivery?.status === "completed"
-                ? "Delivered ✓"
-                : delivery?.status === "arrived"
-                  ? "Arrived at destination!"
-                  : "10-15 mins"}
+              {calculateLiveEta(
+                driverLocation?.latitude,
+                driverLocation?.longitude,
+                delivery?.latitude,
+                delivery?.longitude,
+                driverLocation?.speed,
+                delivery?.status,
+              )}
             </Text>
           </View>
           <DeliveryStatusBadge status={delivery?.status || "started"} />

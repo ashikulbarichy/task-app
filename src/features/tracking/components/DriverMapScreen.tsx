@@ -25,10 +25,10 @@ interface DriverMapScreenProps {
 }
 
 const DEFAULT_REGION: Region = {
-  latitude: 37.7749,
-  longitude: -122.4194,
-  latitudeDelta: 0.015,
-  longitudeDelta: 0.015,
+  latitude: 23.8103,
+  longitude: 90.4125,
+  latitudeDelta: 0.05,
+  longitudeDelta: 0.05,
 };
 
 // Rendering driver map screen
