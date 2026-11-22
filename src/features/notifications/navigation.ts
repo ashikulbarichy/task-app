@@ -4,6 +4,8 @@ export type RootStackParamList = {
   DeliveriesList: undefined;
   DeliveryDetail: { deliveryId: string };
   NotificationSettings: undefined;
+  DriverMap: { deliveryId?: string } | undefined;
+  LocationPermission: undefined;
 };
 
 export const navigationRef = createNavigationContainerRef<RootStackParamList>();

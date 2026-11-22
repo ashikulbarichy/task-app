@@ -70,12 +70,20 @@ export function DeliveriesListScreen({ navigation }: Props) {
     <View style={styles.container}>
       <View style={styles.headerBar}>
         <Text style={styles.title}>Active Deliveries</Text>
-        <Pressable
-          style={styles.settingsButton}
-          onPress={() => navigation.navigate("NotificationSettings")}
-        >
-          <Text style={styles.settingsButtonText}>Settings</Text>
-        </Pressable>
+        <View style={styles.headerButtons}>
+          <Pressable
+            style={styles.mapButton}
+            onPress={() => navigation.navigate("DriverMap", undefined)}
+          >
+            <Text style={styles.mapButtonText}>📍 Live Map</Text>
+          </Pressable>
+          <Pressable
+            style={styles.settingsButton}
+            onPress={() => navigation.navigate("NotificationSettings")}
+          >
+            <Text style={styles.settingsButtonText}>Settings</Text>
+          </Pressable>
+        </View>
       </View>
 
       <FlatList
@@ -132,6 +140,22 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: "700",
     color: "#0F172A",
+  },
+  headerButtons: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  mapButton: {
+    backgroundColor: "#2563EB",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  mapButtonText: {
+    color: "#FFFFFF",
+    fontWeight: "600",
+    fontSize: 13,
   },
   settingsButton: {
     backgroundColor: "#EFF6FF",

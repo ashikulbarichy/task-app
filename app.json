@@ -24,6 +24,11 @@
     "android": {
       "package": "com.dnp.deliveryapp",
       "googleServicesFile": "./google-services.json",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyCkblcPX4C8P2hyV5J1TwlqKTQah9qN0mU"
+        }
+      },
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",

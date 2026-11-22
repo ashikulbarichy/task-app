@@ -10,6 +10,8 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { DeliveriesListScreen } from "@/features/deliveries/components/DeliveriesListScreen";
 import { DeliveryDetailScreen } from "@/features/deliveries/components/DeliveryDetailScreen";
 import { NotificationSettingsScreen } from "@/features/notifications/components/NotificationSettingsScreen";
+import { DriverMapScreen } from "@/features/tracking/components/DriverMapScreen";
+import { LocationPermissionScreen } from "@/features/tracking/components/LocationPermissionScreen";
 import {
   backgroundMessageHandler,
   useNotificationHandlers,
@@ -46,6 +48,8 @@ const linking = {
       DeliveriesList: "",
       DeliveryDetail: "delivery/:deliveryId",
       NotificationSettings: "settings/notifications",
+      DriverMap: "tracking/driver-map",
+      LocationPermission: "tracking/permissions",
     },
   },
 };
@@ -105,6 +109,16 @@ function RootAppNavigator() {
           name="NotificationSettings"
           component={NotificationSettingsScreen}
           options={{ title: "Notification Settings" }}
+        />
+        <Stack.Screen
+          name="DriverMap"
+          component={DriverMapScreen}
+          options={{ title: "Driver Live Map" }}
+        />
+        <Stack.Screen
+          name="LocationPermission"
+          component={LocationPermissionScreen}
+          options={{ title: "Location Permissions" }}
         />
       </Stack.Navigator>
     </NavigationContainer>
