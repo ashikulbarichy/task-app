@@ -19,6 +19,10 @@ const EnvSchema = z.object({
     .enum(["true", "false"])
     .transform((val) => val === "true")
     .default("true"),
+  EXPO_PUBLIC_USE_IN_APP_MOCK: z
+    .enum(["true", "false"])
+    .transform((val) => val === "true")
+    .default("true"),
 });
 
 export type Env = z.infer<typeof EnvSchema>;
@@ -34,6 +38,7 @@ function parseEnv(): Env {
     EXPO_PUBLIC_DEFAULT_STALE_TIME_MS:
       process.env.EXPO_PUBLIC_DEFAULT_STALE_TIME_MS,
     EXPO_PUBLIC_ENABLE_DEBUG_LOGS: process.env.EXPO_PUBLIC_ENABLE_DEBUG_LOGS,
+    EXPO_PUBLIC_USE_IN_APP_MOCK: process.env.EXPO_PUBLIC_USE_IN_APP_MOCK,
   });
 
   if (!result.success) {

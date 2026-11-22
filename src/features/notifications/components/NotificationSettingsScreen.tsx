@@ -1,13 +1,19 @@
-import React from "react";
+import * as Notifications from "expo-notifications";
+import { useQueryClient } from "@tanstack/react-query";
+import React, { useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   StyleSheet,
   Switch,
   Text,
   View,
 } from "react-native";
 
-import { Card, ErrorView, LoadingView } from "@/components/ui";
+import { resetMockData } from "@/api/mockAdapter";
+import { AppButton, Card, ErrorView, LoadingView } from "@/components/ui";
+import { deliveryKeys } from "@/features/deliveries/queries";
+import { env } from "@/lib/env";
 import {
   useNotificationSettings,
   useUpdateNotificationSettings,
@@ -47,6 +53,9 @@ const SETTING_ROWS: readonly SettingRowItem[] = [
 
 // Rendering notification settings screen
 export function NotificationSettingsScreen() {
+  const queryClient = useQueryClient();
+  const [isTriggering, setIsTriggering] = useState(false);
+
   const {
     data: settings,
     isPending,
@@ -68,6 +77,39 @@ export function NotificationSettingsScreen() {
       ...settings,
       [key]: nextValue,
     });
+  };
+
+  const handleTriggerDemoNotification = async () => {
+    setIsTriggering(true);
+    try {
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: "Driver Has Arrived!",
+          body: "Alex Rivera is outside with order #ORD-9481.",
+          data: {
+            type: "order_update",
+            deliveryId: "del-101",
+            status: "arrived",
+            title: "Driver Has Arrived!",
+            body: "Alex Rivera is outside with order #ORD-9481.",
+          },
+          sound: "default",
+        },
+        trigger: {
+          channelId: env.EXPO_PUBLIC_NOTIFICATION_CHANNEL_ID,
+        },
+      });
+    } catch {
+      Alert.alert("Notification", "Could not trigger notification.");
+    } finally {
+      setIsTriggering(false);
+    }
+  };
+
+  const handleResetDemoData = () => {
+    resetMockData();
+    void queryClient.invalidateQueries({ queryKey: deliveryKeys.all });
+    Alert.alert("Data Reset", "Mock deliveries have been restored to initial state.");
   };
 
   if (isPending) {
@@ -124,6 +166,21 @@ export function NotificationSettingsScreen() {
           <Text style={styles.savingText}>Saving changes…</Text>
         </View>
       )}
+
+      <View style={styles.demoSection}>
+        <Text style={styles.demoSectionTitle}>Demo & Standalone Testing</Text>
+        <AppButton
+          title="🔔 Trigger Demo Arrival Notification"
+          variant="secondary"
+          onPress={handleTriggerDemoNotification}
+          isLoading={isTriggering}
+        />
+        <AppButton
+          title="↻ Reset Mock Data"
+          variant="outline"
+          onPress={handleResetDemoData}
+        />
+      </View>
     </View>
   );
 }
@@ -150,6 +207,7 @@ const styles = StyleSheet.create({
   card: {
     padding: 0,
     overflow: "hidden",
+    marginBottom: 16,
   },
   row: {
     flexDirection: "row",
@@ -179,11 +237,23 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 14,
+    marginBottom: 16,
     gap: 8,
   },
   savingText: {
     fontSize: 13,
     color: "#475569",
+  },
+  demoSection: {
+    gap: 10,
+    marginTop: 8,
+  },
+  demoSectionTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#64748B",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 2,
   },
 });

@@ -6,6 +6,7 @@ import axios, {
 import { ZodError, z } from "zod";
 
 import { env } from "@/lib/env";
+import { createInAppMockAdapter } from "./mockAdapter";
 
 export const ApiErrorCodeSchema = z.enum([
   "UNAUTHORIZED",
@@ -71,6 +72,7 @@ const REQUEST_TIMEOUT_MS = env.EXPO_PUBLIC_API_TIMEOUT_MS;
 export const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
   timeout: REQUEST_TIMEOUT_MS,
+  adapter: createInAppMockAdapter(),
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",

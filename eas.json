@@ -9,6 +9,9 @@
       "node": "20.18.0",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_USE_IN_APP_MOCK": "true"
       }
     },
     "preview": {
@@ -16,10 +19,16 @@
       "node": "20.18.0",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_USE_IN_APP_MOCK": "true"
       }
     },
     "production": {
-      "node": "20.18.0"
+      "node": "20.18.0",
+      "env": {
+        "EXPO_PUBLIC_USE_IN_APP_MOCK": "true"
+      }
     }
   },
   "submit": {
