@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import MapView, { Marker, PROVIDER_DEFAULT, Region } from "react-native-maps";
+import MapView, { Marker, type MapMarker, PROVIDER_DEFAULT, Region } from "react-native-maps";
 
 import { useDeliveryDetail } from "@/features/deliveries/queries";
 import type { RootStackParamList } from "@/features/notifications/navigation";
@@ -50,8 +50,14 @@ export function CustomerTrackingScreen({ route, navigation }: Props) {
   const driverLocation = activeQuery.data;
 
   const mapRef = useRef<MapView | null>(null);
-  const driverMarkerRef = useRef<any>(null);
+  const driverMarkerRef = useRef<MapMarker | null>(null);
   const previousCoordsRef = useRef<{ latitude: number; longitude: number } | null>(null);
+
+  // Stable initial coordinate passed to native marker once to prevent prop-update snapping
+  const [initialMarkerCoord, setInitialMarkerCoord] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
 
   // Smooth Marker Animation (glides smoothly from previous coordinate to new coordinate)
   useEffect(() => {
@@ -62,22 +68,23 @@ export function CustomerTrackingScreen({ route, navigation }: Props) {
       longitude: driverLocation.longitude,
     };
 
-    if (previousCoordsRef.current && driverMarkerRef.current) {
-      // Smoothly animate marker over 1200ms rather than abruptly teleporting
-      if (typeof driverMarkerRef.current.animateMarkerToCoordinate === "function") {
-        driverMarkerRef.current.animateMarkerToCoordinate(newCoordinate, 1200);
-      }
-    } else {
-      // First fix: center map region on driver
+    if (!initialMarkerCoord) {
+      // First fix: set initial marker coordinate and center map
+      setInitialMarkerCoord(newCoordinate);
       mapRef.current?.animateToRegion({
         ...newCoordinate,
         latitudeDelta: 0.015,
         longitudeDelta: 0.015,
       });
+    } else {
+      // Subsequent fixes: smoothly glide marker over 1200ms using native animator
+      if (typeof driverMarkerRef.current?.animateMarkerToCoordinate === "function") {
+        driverMarkerRef.current.animateMarkerToCoordinate(newCoordinate, 1200);
+      }
     }
 
     previousCoordsRef.current = newCoordinate;
-  }, [driverLocation?.latitude, driverLocation?.longitude]);
+  }, [driverLocation?.latitude, driverLocation?.longitude, initialMarkerCoord]);
 
   const handleRecenter = () => {
     if (driverLocation) {
@@ -113,16 +120,13 @@ export function CustomerTrackingScreen({ route, navigation }: Props) {
         )}
 
         {/* Live Driver Marker (Animated) */}
-        {driverLocation && (
+        {initialMarkerCoord && (
           <Marker.Animated
             ref={driverMarkerRef}
-            coordinate={{
-              latitude: driverLocation.latitude,
-              longitude: driverLocation.longitude,
-            }}
+            coordinate={initialMarkerCoord}
             title="Your Delivery Driver"
             description={
-              driverLocation.speed
+              driverLocation?.speed
                 ? `Speed: ${(driverLocation.speed * 3.6).toFixed(1)} km/h`
                 : "Driver Location"
             }
@@ -244,7 +248,7 @@ export function CustomerTrackingScreen({ route, navigation }: Props) {
                   : styles.badgeTransitText,
               ]}
             >
-              {delivery?.status.toUpperCase() || "IN TRANSIT"}
+              {delivery?.status ? delivery.status.toUpperCase() : "IN TRANSIT"}
             </Text>
           </View>
         </View>

@@ -109,6 +109,12 @@ export function useUpdateDeliveryStatus() {
       }
     },
 
+    onSuccess: (_data, vars) => {
+      // Invalidate queries as required by prompt instructions
+      void queryClient.invalidateQueries({ queryKey: deliveryKeys.all });
+      void queryClient.invalidateQueries({ queryKey: deliveryKeys.detail(vars.id) });
+    },
+
     onSettled: (_data, _err, vars) => {
       // Always re-sync with server state after mutation completes
       void queryClient.invalidateQueries({ queryKey: deliveryKeys.all });
@@ -149,12 +155,12 @@ export function useCompleteDelivery() {
           previousAll.map((item) =>
             item.id === id
               ? {
-                  ...item,
-                  status: "completed",
-                  recipientName: proof.recipientName,
-                  notes: proof.notes,
-                  updatedAt: timestamp,
-                }
+                ...item,
+                status: "completed",
+                recipientName: proof.recipientName,
+                notes: proof.notes,
+                updatedAt: timestamp,
+              }
               : item,
           ),
         );
@@ -190,6 +196,13 @@ export function useCompleteDelivery() {
         console.warn("[useCompleteDelivery] Error stopping background tracking:", err);
       }
 
+      // Invalidate queries as required by Prompt 6 instructions
+      void queryClient.invalidateQueries({ queryKey: deliveryKeys.all });
+      void queryClient.invalidateQueries({ queryKey: deliveryKeys.detail(vars.id) });
+    },
+
+    onSettled: (_data, _err, vars) => {
+      // Always re-sync cache with ground truth from the server
       void queryClient.invalidateQueries({ queryKey: deliveryKeys.all });
       void queryClient.invalidateQueries({ queryKey: deliveryKeys.detail(vars.id) });
     },
