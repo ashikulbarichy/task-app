@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import MapView, { Marker, type MapMarker, PROVIDER_DEFAULT, Region } from "react-native-maps";
 
+import { Card, DeliveryStatusBadge } from "@/components/ui";
 import { useDeliveryDetail } from "@/features/deliveries/queries";
 import type { RootStackParamList } from "@/features/notifications/navigation";
 import {
@@ -139,7 +140,7 @@ export function CustomerTrackingScreen({ route, navigation }: Props) {
       </MapView>
 
       {/* Top Floating Header Card */}
-      <View style={styles.topCard}>
+      <Card style={styles.topCard}>
         <View style={styles.topHeaderRow}>
           <View>
             <Text style={styles.orderTitle}>
@@ -212,7 +213,7 @@ export function CustomerTrackingScreen({ route, navigation }: Props) {
             </Text>
           )}
         </View>
-      </View>
+      </Card>
 
       {/* Recenter Button */}
       <TouchableOpacity style={styles.recenterButton} onPress={handleRecenter}>
@@ -220,7 +221,7 @@ export function CustomerTrackingScreen({ route, navigation }: Props) {
       </TouchableOpacity>
 
       {/* Bottom Floating Delivery Info Card */}
-      <View style={styles.bottomCard}>
+      <Card style={styles.bottomCard}>
         <View style={styles.etaRow}>
           <View>
             <Text style={styles.etaLabel}>Estimated Arrival</Text>
@@ -232,25 +233,7 @@ export function CustomerTrackingScreen({ route, navigation }: Props) {
                   : "10-15 mins"}
             </Text>
           </View>
-          <View
-            style={[
-              styles.statusBadge,
-              delivery?.status === "completed"
-                ? styles.badgeCompleted
-                : styles.badgeTransit,
-            ]}
-          >
-            <Text
-              style={[
-                styles.statusBadgeText,
-                delivery?.status === "completed"
-                  ? styles.badgeCompletedText
-                  : styles.badgeTransitText,
-              ]}
-            >
-              {delivery?.status ? delivery.status.toUpperCase() : "IN TRANSIT"}
-            </Text>
-          </View>
+          <DeliveryStatusBadge status={delivery?.status || "started"} />
         </View>
 
         {delivery?.address && (
@@ -265,7 +248,7 @@ export function CustomerTrackingScreen({ route, navigation }: Props) {
         >
           <Text style={styles.backButtonText}>← Close Live Tracking</Text>
         </Pressable>
-      </View>
+      </Card>
     </View>
   );
 }

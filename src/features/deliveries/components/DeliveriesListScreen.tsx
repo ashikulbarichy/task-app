@@ -1,7 +1,6 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import React from "react";
 import {
-  ActivityIndicator,
   FlatList,
   Pressable,
   RefreshControl,
@@ -10,6 +9,12 @@ import {
   View,
 } from "react-native";
 
+import {
+  Card,
+  DeliveryStatusBadge,
+  ErrorView,
+  LoadingView,
+} from "@/components/ui";
 import type { RootStackParamList } from "@/features/notifications/navigation";
 import { useDeliveries } from "../queries";
 import type { Delivery } from "../schemas";
@@ -21,49 +26,36 @@ export function DeliveriesListScreen({ navigation }: Props) {
     useDeliveries();
 
   if (isPending) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#2563EB" />
-        <Text style={styles.loadingText}>Loading assigned deliveries…</Text>
-      </View>
-    );
+    return <LoadingView message="Loading assigned deliveries…" />;
   }
 
   if (error || !deliveries) {
     return (
-      <View style={styles.centered}>
-        <Text style={styles.errorTitle}>Could not load deliveries</Text>
-        <Text style={styles.errorMessage}>
-          {error?.message ?? "An unexpected error occurred."}
-        </Text>
-        <Pressable style={styles.primaryButton} onPress={() => void refetch()}>
-          <Text style={styles.primaryButtonText}>Retry</Text>
-        </Pressable>
-      </View>
+      <ErrorView
+        title="Could not load deliveries"
+        message={error?.message ?? "An unexpected error occurred."}
+        onRetry={() => void refetch()}
+        retryButtonText="Retry"
+      />
     );
   }
 
   const renderItem = ({ item }: { item: Delivery }) => (
-    <Pressable
-      style={styles.card}
+    <Card
       onPress={() =>
         navigation.navigate("DeliveryDetail", { deliveryId: item.id })
       }
     >
       <View style={styles.cardHeader}>
         <Text style={styles.orderNumber}>#{item.orderNumber}</Text>
-        <View style={[styles.statusBadge, getStatusBadgeStyle(item.status)]}>
-          <Text style={[styles.statusBadgeText, getStatusTextStyle(item.status)]}>
-            {item.status.toUpperCase()}
-          </Text>
-        </View>
+        <DeliveryStatusBadge status={item.status} />
       </View>
       <Text style={styles.customerName}>{item.customerName}</Text>
       <Text style={styles.address}>{item.address}</Text>
       {item.updatedAt && (
         <Text style={styles.timestamp}>Updated: {item.updatedAt}</Text>
       )}
-    </Pressable>
+    </Card>
   );
 
   return (
@@ -106,34 +98,6 @@ export function DeliveriesListScreen({ navigation }: Props) {
       />
     </View>
   );
-}
-
-function getStatusBadgeStyle(status: Delivery["status"]) {
-  switch (status) {
-    case "started":
-      return { backgroundColor: "#DBEAFE" };
-    case "arrived":
-      return { backgroundColor: "#FEF3C7" };
-    case "completed":
-      return { backgroundColor: "#DCFCE7" };
-    case "pending":
-    default:
-      return { backgroundColor: "#F1F5F9" };
-  }
-}
-
-function getStatusTextStyle(status: Delivery["status"]) {
-  switch (status) {
-    case "started":
-      return { color: "#1D4ED8" };
-    case "arrived":
-      return { color: "#B45309" };
-    case "completed":
-      return { color: "#15803D" };
-    case "pending":
-    default:
-      return { color: "#475569" };
-  }
 }
 
 const styles = StyleSheet.create({
@@ -187,17 +151,6 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 12,
   },
-  card: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -208,16 +161,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
     color: "#0F172A",
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  statusBadgeText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "#1E293B",
   },
   customerName: {
     fontSize: 15,
@@ -233,40 +176,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: "#94A3B8",
     marginTop: 8,
-  },
-  centered: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 24,
-    backgroundColor: "#F8FAFC",
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 14,
-    color: "#64748B",
-  },
-  errorTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#0F172A",
-    marginBottom: 4,
-  },
-  errorMessage: {
-    fontSize: 14,
-    color: "#64748B",
-    textAlign: "center",
-    marginBottom: 16,
-  },
-  primaryButton: {
-    backgroundColor: "#2563EB",
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  primaryButtonText: {
-    color: "#FFFFFF",
-    fontWeight: "600",
   },
   emptyContainer: {
     padding: 32,

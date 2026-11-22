@@ -2,17 +2,16 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import React from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
-  ActivityIndicator,
   KeyboardAvoidingView,
   Modal,
   Platform,
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from "react-native";
 
+import { AppButton } from "@/components/ui";
 import {
   type ProofOfDeliveryForm,
   ProofOfDeliveryFormSchema,
@@ -130,28 +129,21 @@ export function ProofOfDeliveryModal({
 
           {/* Modal Actions */}
           <View style={styles.actionRow}>
-            <TouchableOpacity
-              style={styles.cancelButton}
+            <AppButton
+              title="Cancel"
+              variant="outline"
               onPress={handleClose}
               disabled={isSubmitting}
-            >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
-            </TouchableOpacity>
+              style={styles.cancelBtn}
+            />
 
-            <TouchableOpacity
-              style={[
-                styles.submitButton,
-                isSubmitting && styles.submitButtonDisabled,
-              ]}
+            <AppButton
+              title="Confirm Delivery"
+              variant="success"
               onPress={handleSubmit(handleFormSubmit)}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <ActivityIndicator color="#FFFFFF" size="small" />
-              ) : (
-                <Text style={styles.submitButtonText}>Confirm Delivery</Text>
-              )}
-            </TouchableOpacity>
+              isLoading={isSubmitting}
+              style={styles.submitBtn}
+            />
           </View>
         </View>
       </KeyboardAvoidingView>
@@ -229,33 +221,10 @@ const styles = StyleSheet.create({
     gap: 12,
     marginTop: 8,
   },
-  cancelButton: {
+  cancelBtn: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#CBD5E1",
-    alignItems: "center",
   },
-  cancelButtonText: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#475569",
-  },
-  submitButton: {
+  submitBtn: {
     flex: 2,
-    paddingVertical: 14,
-    borderRadius: 10,
-    backgroundColor: "#16A34A",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  submitButtonDisabled: {
-    opacity: 0.7,
-  },
-  submitButtonText: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#FFFFFF",
   },
 });

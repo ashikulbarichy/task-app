@@ -1,18 +1,18 @@
 import React from "react";
 import {
   ActivityIndicator,
-  Pressable,
   StyleSheet,
   Switch,
   Text,
   View,
 } from "react-native";
 
-import type { NotificationSettings } from "../schemas";
+import { Card, ErrorView, LoadingView } from "@/components/ui";
 import {
   useNotificationSettings,
   useUpdateNotificationSettings,
 } from "../queries";
+import type { NotificationSettings } from "../schemas";
 
 type SettingKey = keyof NotificationSettings;
 
@@ -45,13 +45,6 @@ const SETTING_ROWS: readonly SettingRowItem[] = [
   },
 ];
 
-/**
- * Notification Settings UI Screen.
- * Strictly obeys architecture rules:
- * - Zero direct Axios/fetch calls.
- * - Zero server data copied into `useState`.
- * - Consumes React Query hooks (`data`, `isPending`, `error`) directly.
- */
 export function NotificationSettingsScreen() {
   const {
     data: settings,
@@ -77,30 +70,17 @@ export function NotificationSettingsScreen() {
   };
 
   if (isPending) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#2563EB" />
-        <Text style={styles.statusText}>Loading notification settings…</Text>
-      </View>
-    );
+    return <LoadingView message="Loading notification settings…" />;
   }
 
   if (error || !settings) {
     return (
-      <View style={styles.centered}>
-        <Text style={styles.errorTitle}>Could not load settings</Text>
-        <Text style={styles.errorMessage}>
-          {error?.message ?? "An unexpected error occurred."}
-        </Text>
-        <Pressable
-          style={styles.retryButton}
-          onPress={() => {
-            void refetch();
-          }}
-        >
-          <Text style={styles.retryButtonText}>Try Again</Text>
-        </Pressable>
-      </View>
+      <ErrorView
+        title="Could not load settings"
+        message={error?.message ?? "An unexpected error occurred."}
+        onRetry={() => void refetch()}
+        retryButtonText="Try Again"
+      />
     );
   }
 
@@ -113,7 +93,7 @@ export function NotificationSettingsScreen() {
         </Text>
       </View>
 
-      <View style={styles.card}>
+      <Card style={styles.card}>
         {SETTING_ROWS.map((row, index) => {
           const isLast = index === SETTING_ROWS.length - 1;
           return (
@@ -135,7 +115,7 @@ export function NotificationSettingsScreen() {
             </View>
           );
         })}
-      </View>
+      </Card>
 
       {isUpdating && (
         <View style={styles.savingRow}>
@@ -153,41 +133,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#F8FAFC",
     padding: 16,
   },
-  centered: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 24,
-    backgroundColor: "#F8FAFC",
-  },
-  statusText: {
-    marginTop: 12,
-    fontSize: 15,
-    color: "#475569",
-  },
-  errorTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#0F172A",
-    marginBottom: 6,
-  },
-  errorMessage: {
-    fontSize: 14,
-    color: "#64748B",
-    textAlign: "center",
-    marginBottom: 16,
-  },
-  retryButton: {
-    backgroundColor: "#2563EB",
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  retryButtonText: {
-    color: "#FFFFFF",
-    fontSize: 15,
-    fontWeight: "600",
-  },
   header: {
     marginBottom: 16,
   },
@@ -202,10 +147,7 @@ const styles = StyleSheet.create({
     color: "#64748B",
   },
   card: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
+    padding: 0,
     overflow: "hidden",
   },
   row: {

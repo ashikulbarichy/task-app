@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   Linking,
   Platform,
   ScrollView,
@@ -10,6 +9,7 @@ import {
   View,
 } from "react-native";
 
+import { AppButton, Card, LoadingView } from "@/components/ui";
 import {
   checkLocationPermissions,
   promptBatteryOptimizationInfo,
@@ -70,12 +70,7 @@ export function LocationPermissionScreen({
   const allGranted = foregroundGranted && backgroundGranted;
 
   if (loading) {
-    return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#2563EB" />
-        <Text style={styles.loadingText}>Checking location permissions...</Text>
-      </View>
-    );
+    return <LoadingView message="Checking location permissions..." />;
   }
 
   return (
@@ -93,7 +88,7 @@ export function LocationPermissionScreen({
 
       <View style={styles.cardSection}>
         {/* Permission 1: Foreground */}
-        <View style={styles.card}>
+        <Card style={styles.card}>
           <View style={styles.cardHeader}>
             <Text style={styles.cardTitle}>1. Foreground Location</Text>
             <View
@@ -116,10 +111,10 @@ export function LocationPermissionScreen({
             Used while the app is open to display your current position on the map and route you
             to customer drop-off points.
           </Text>
-        </View>
+        </Card>
 
         {/* Permission 2: Background */}
-        <View style={styles.card}>
+        <Card style={styles.card}>
           <View style={styles.cardHeader}>
             <Text style={styles.cardTitle}>
               2. Background Location ({Platform.OS === "android" ? '"Allow all the time"' : '"Always"'})
@@ -144,7 +139,7 @@ export function LocationPermissionScreen({
             Essential for background delivery updates. Ensures your live location continues
             broadcasting even when the screen is off or you switch to Google Maps or Waze.
           </Text>
-        </View>
+        </Card>
       </View>
 
       {/* Rationale Notice */}
@@ -159,27 +154,19 @@ export function LocationPermissionScreen({
       <View style={styles.buttonContainer}>
         {!allGranted ? (
           <>
-            <TouchableOpacity
-              style={[styles.primaryButton, requesting && styles.buttonDisabled]}
+            <AppButton
+              title="Grant Location Access"
+              variant="primary"
               onPress={handleRequestPermissions}
-              disabled={requesting}
-            >
-              {requesting ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <Text style={styles.primaryButtonText}>Grant Location Access</Text>
-              )}
-            </TouchableOpacity>
+              isLoading={requesting}
+            />
 
             {foregroundGranted && !backgroundGranted && (
-              <TouchableOpacity
-                style={styles.secondaryButton}
+              <AppButton
+                title='Open Settings to Choose "Allow all the time"'
+                variant="secondary"
                 onPress={() => void Linking.openSettings()}
-              >
-                <Text style={styles.secondaryButtonText}>
-                  Open Settings to Choose &quot;Allow all the time&quot;
-                </Text>
-              </TouchableOpacity>
+              />
             )}
 
             {onContinueAnyway && (
@@ -192,12 +179,11 @@ export function LocationPermissionScreen({
             )}
           </>
         ) : (
-          <TouchableOpacity
-            style={styles.successButton}
+          <AppButton
+            title="✓ All Permissions Granted — Proceed to Map"
+            variant="success"
             onPress={() => onPermissionsGranted?.()}
-          >
-            <Text style={styles.successButtonText}>✓ All Permissions Granted — Proceed to Map</Text>
-          </TouchableOpacity>
+          />
         )}
       </View>
     </ScrollView>
@@ -210,17 +196,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#F8FAFC",
     flexGrow: 1,
     justifyContent: "space-between",
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#F8FAFC",
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 14,
-    color: "#64748B",
   },
   header: {
     alignItems: "center",
@@ -260,16 +235,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   card: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 14,
     padding: 16,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
   },
   cardHeader: {
     flexDirection: "row",
@@ -326,36 +292,6 @@ const styles = StyleSheet.create({
     gap: 12,
     marginBottom: 16,
   },
-  primaryButton: {
-    backgroundColor: "#2563EB",
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  primaryButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  secondaryButton: {
-    backgroundColor: "#EFF6FF",
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#BFDBFE",
-  },
-  secondaryButtonText: {
-    color: "#1D4ED8",
-    fontSize: 14,
-    fontWeight: "600",
-    textAlign: "center",
-    paddingHorizontal: 12,
-  },
   textButton: {
     paddingVertical: 8,
     alignItems: "center",
@@ -364,16 +300,5 @@ const styles = StyleSheet.create({
     color: "#64748B",
     fontSize: 13,
     textDecorationLine: "underline",
-  },
-  successButton: {
-    backgroundColor: "#16A34A",
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: "center",
-  },
-  successButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
   },
 });

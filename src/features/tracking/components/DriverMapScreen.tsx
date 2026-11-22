@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import MapView, { Marker, PROVIDER_DEFAULT, Region } from "react-native-maps";
 
+import { AppButton, Card } from "@/components/ui";
 import {
   checkLocationPermissions,
   isBackgroundTrackingActive,
@@ -228,7 +229,7 @@ export function DriverMapScreen({ deliveryId }: DriverMapScreenProps) {
       </MapView>
 
       {/* Top Floating Dashboard Card */}
-      <View style={styles.dashboardCard}>
+      <Card style={styles.dashboardCard}>
         <View style={styles.statusRow}>
           <View style={styles.statusIndicator}>
             <View
@@ -272,7 +273,7 @@ export function DriverMapScreen({ deliveryId }: DriverMapScreenProps) {
         ) : (
           <Text style={styles.coordsText}>Acquiring GPS fix...</Text>
         )}
-      </View>
+      </Card>
 
       {/* Floating Recenter Button */}
       <TouchableOpacity style={styles.recenterButton} onPress={handleRecenter}>
@@ -281,17 +282,11 @@ export function DriverMapScreen({ deliveryId }: DriverMapScreenProps) {
 
       {/* Bottom Floating Control Panel */}
       <View style={styles.controlPanel}>
-        <TouchableOpacity
-          style={[
-            styles.trackingToggleButton,
-            isTracking ? styles.stopButton : styles.startButton,
-          ]}
+        <AppButton
+          title={isTracking ? "⏹ Stop Background Tracking" : "▶ Start Background Tracking"}
+          variant={isTracking ? "danger" : "primary"}
           onPress={handleToggleTracking}
-        >
-          <Text style={styles.trackingToggleText}>
-            {isTracking ? "⏹ Stop Background Tracking" : "▶ Start Background Tracking"}
-          </Text>
-        </TouchableOpacity>
+        />
       </View>
     </View>
   );

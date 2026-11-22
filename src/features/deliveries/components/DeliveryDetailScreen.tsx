@@ -1,17 +1,22 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import React, { useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   Pressable,
   ScrollView,
   StyleSheet,
   Switch,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 
+import {
+  AppButton,
+  Card,
+  DeliveryStatusBadge,
+  ErrorView,
+  LoadingView,
+} from "@/components/ui";
 import type { RootStackParamList } from "@/features/notifications/navigation";
 import { startBackgroundTracking } from "@/features/tracking/backgroundTask";
 import {
@@ -42,25 +47,17 @@ export function DeliveryDetailScreen({ route, navigation }: Props) {
   const [simulateServerFailure, setSimulateServerFailure] = useState(false);
 
   if (isPending) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#2563EB" />
-        <Text style={styles.loadingText}>Fetching order #{deliveryId}…</Text>
-      </View>
-    );
+    return <LoadingView message={`Fetching order #${deliveryId}…`} />;
   }
 
   if (error || !delivery) {
     return (
-      <View style={styles.centered}>
-        <Text style={styles.errorTitle}>Could not load delivery</Text>
-        <Text style={styles.errorMessage}>
-          {error?.message ?? "The requested delivery was not found."}
-        </Text>
-        <Pressable style={styles.primaryButton} onPress={() => void refetch()}>
-          <Text style={styles.primaryButtonText}>Retry</Text>
-        </Pressable>
-      </View>
+      <ErrorView
+        title="Could not load delivery"
+        message={error?.message ?? "The requested delivery was not found."}
+        onRetry={() => void refetch()}
+        retryButtonText="Retry"
+      />
     );
   }
 
@@ -156,14 +153,10 @@ export function DeliveryDetailScreen({ route, navigation }: Props) {
       </View>
 
       {/* Main Order Card */}
-      <View style={styles.card}>
+      <Card style={styles.orderCard}>
         <View style={styles.statusRow}>
           <Text style={styles.orderNumber}>Order #{delivery.orderNumber}</Text>
-          <View style={[styles.statusBadge, getStatusBadgeStyle(delivery.status)]}>
-            <Text style={[styles.statusText, getStatusTextStyle(delivery.status)]}>
-              {delivery.status.toUpperCase()}
-            </Text>
-          </View>
+          <DeliveryStatusBadge status={delivery.status} />
         </View>
 
         {/* Linear Lifecycle Progress Bar */}
@@ -245,55 +238,43 @@ export function DeliveryDetailScreen({ route, navigation }: Props) {
             Last state sync: {delivery.updatedAt}
           </Text>
         )}
-      </View>
+      </Card>
 
       {/* Action Buttons Based On Strict Lifecycle */}
       <View style={styles.actionSection}>
         {delivery.status === "pending" && (
-          <TouchableOpacity
-            style={[styles.actionButton, styles.primaryActionButton]}
+          <AppButton
+            title="▶ Start Delivery"
+            variant="primary"
             onPress={handleStartDelivery}
-            disabled={isMutating}
-          >
-            {isMutating ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : (
-              <Text style={styles.actionButtonText}>▶ Start Delivery</Text>
-            )}
-          </TouchableOpacity>
+            isLoading={isMutating}
+          />
         )}
 
         {delivery.status === "started" && (
           <>
-            <TouchableOpacity
-              style={[styles.actionButton, styles.warningActionButton]}
+            <AppButton
+              title="📍 Mark Arrived"
+              variant="warning"
               onPress={handleMarkArrived}
-              disabled={isMutating}
-            >
-              {isMutating ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <Text style={styles.actionButtonText}>📍 Mark Arrived</Text>
-              )}
-            </TouchableOpacity>
+              isLoading={isMutating}
+            />
 
-            <TouchableOpacity
-              style={[styles.actionButton, styles.secondaryActionButton]}
+            <AppButton
+              title="🗺 View Live Route on Map"
+              variant="secondary"
               onPress={() => navigation.navigate("DriverMap", { deliveryId: delivery.id })}
-            >
-              <Text style={styles.secondaryActionButtonText}>🗺 View Live Route on Map</Text>
-            </TouchableOpacity>
+            />
           </>
         )}
 
         {delivery.status === "arrived" && (
-          <TouchableOpacity
-            style={[styles.actionButton, styles.successActionButton]}
+          <AppButton
+            title="✍ Complete Delivery (POD)"
+            variant="success"
             onPress={() => setIsPodModalVisible(true)}
-            disabled={isMutating}
-          >
-            <Text style={styles.actionButtonText}>✍ Complete Delivery (POD)</Text>
-          </TouchableOpacity>
+            isLoading={isMutating}
+          />
         )}
 
         {delivery.status === "completed" && (
@@ -306,12 +287,13 @@ export function DeliveryDetailScreen({ route, navigation }: Props) {
         )}
 
         {/* Customer Live Tracking View (Stage 4 & 5) */}
-        <TouchableOpacity
-          style={[styles.actionButton, styles.customerViewButton]}
+        <AppButton
+          title="👁 View Customer Live Tracking"
+          variant="secondary"
           onPress={() => navigation.navigate("CustomerTracking", { deliveryId: delivery.id })}
-        >
-          <Text style={styles.customerViewButtonText}>👁 View Customer Live Tracking</Text>
-        </TouchableOpacity>
+          style={styles.customerViewButton}
+          textStyle={styles.customerViewButtonText}
+        />
       </View>
 
       <Pressable
@@ -345,34 +327,6 @@ function getStepIndex(status: DeliveryStatus): number {
       return 3;
     default:
       return 0;
-  }
-}
-
-function getStatusBadgeStyle(status: DeliveryStatus) {
-  switch (status) {
-    case "started":
-      return { backgroundColor: "#DBEAFE" };
-    case "arrived":
-      return { backgroundColor: "#FEF3C7" };
-    case "completed":
-      return { backgroundColor: "#DCFCE7" };
-    case "pending":
-    default:
-      return { backgroundColor: "#F1F5F9" };
-  }
-}
-
-function getStatusTextStyle(status: DeliveryStatus) {
-  switch (status) {
-    case "started":
-      return { color: "#1D4ED8" };
-    case "arrived":
-      return { color: "#B45309" };
-    case "completed":
-      return { color: "#15803D" };
-    case "pending":
-    default:
-      return { color: "#475569" };
   }
 }
 
@@ -412,16 +366,7 @@ const styles = StyleSheet.create({
     color: "#B91C1C",
     marginTop: 2,
   },
-  card: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 14,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+  orderCard: {
     marginBottom: 16,
   },
   statusRow: {
@@ -433,15 +378,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "700",
     color: "#0F172A",
-  },
-  statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: "700",
   },
   lifecycleContainer: {
     flexDirection: "row",
@@ -524,31 +460,6 @@ const styles = StyleSheet.create({
     gap: 12,
     marginBottom: 16,
   },
-  actionButton: {
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  primaryActionButton: {
-    backgroundColor: "#2563EB",
-  },
-  warningActionButton: {
-    backgroundColor: "#D97706",
-  },
-  successActionButton: {
-    backgroundColor: "#16A34A",
-  },
-  secondaryActionButton: {
-    backgroundColor: "#EFF6FF",
-    borderWidth: 1,
-    borderColor: "#BFDBFE",
-  },
   customerViewButton: {
     backgroundColor: "#F8FAFC",
     borderWidth: 1.5,
@@ -556,18 +467,6 @@ const styles = StyleSheet.create({
   },
   customerViewButtonText: {
     color: "#4F46E5",
-    fontSize: 15,
-    fontWeight: "700",
-  },
-  actionButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  secondaryActionButtonText: {
-    color: "#1D4ED8",
-    fontSize: 15,
-    fontWeight: "700",
   },
   completedNotice: {
     backgroundColor: "#DCFCE7",
@@ -596,39 +495,5 @@ const styles = StyleSheet.create({
     color: "#2563EB",
     fontWeight: "600",
     fontSize: 15,
-  },
-  centered: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 24,
-    backgroundColor: "#F8FAFC",
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 14,
-    color: "#64748B",
-  },
-  errorTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#0F172A",
-    marginBottom: 4,
-  },
-  errorMessage: {
-    fontSize: 14,
-    color: "#64748B",
-    textAlign: "center",
-    marginBottom: 16,
-  },
-  primaryButton: {
-    backgroundColor: "#2563EB",
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  primaryButtonText: {
-    color: "#FFFFFF",
-    fontWeight: "600",
   },
 });
