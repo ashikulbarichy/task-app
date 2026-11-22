@@ -1,0 +1,31 @@
+node_modules/
+.expo/
+dist/
+npm-debug.*
+*.jks
+*.keystore
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+
+# Android / iOS generated builds
+android/
+ios/
+
+# Environment files (local only)
+.env
+.env.local
+.env.*.local
+
+# Firebase credentials (local only)
+google-services.json
+GoogleService-Info.plist
+
+# Mock server runtime & credentials (local only)
+backend-mock/node_modules/
+backend-mock/.latest-token.txt
+backend-mock/serviceAccountKey.json
+backend-mock/*adminsdk*.json
+backend-mock/*.json.key

@@ -1,0 +1,73 @@
+{
+  "expo": {
+    "name": "DNP Delivery",
+    "slug": "dnp-delivery-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "dnpdelivery",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": false,
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.dnp.deliveryapp",
+      "googleServicesFile": "./google-services.json",
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "location",
+          "fetch",
+          "remote-notification"
+        ],
+        "NSLocationWhenInUseUsageDescription": "DNP Delivery needs your location while using the app to show your live position on the delivery map.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "DNP Delivery needs background location access to keep sharing live delivery progress with customers while the app is minimized or the screen is locked."
+      }
+    },
+    "android": {
+      "package": "com.dnp.deliveryapp",
+      "googleServicesFile": "./google-services.json",
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION",
+        "POST_NOTIFICATIONS",
+        "WAKE_LOCK"
+      ]
+    },
+    "plugins": [
+      "expo-dev-client",
+      "@react-native-firebase/app",
+      "@react-native-firebase/messaging",
+      [
+        "expo-notifications",
+        {
+          "color": "#2563EB",
+          "defaultChannel": "delivery-updates"
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUseUsageDescription": "DNP Delivery needs background location access to keep sharing live delivery progress with customers while the app is minimized or the screen is locked.",
+          "locationWhenInUseUsageDescription": "DNP Delivery needs your location while using the app to show your live position on the delivery map.",
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static"
+          }
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "32d79e91-0960-44dc-b543-c9d86b3d1703"
+      }
+    }
+  }
+}

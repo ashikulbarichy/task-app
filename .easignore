@@ -1,0 +1,21 @@
+node_modules/
+.expo/
+dist/
+npm-debug.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+
+# Android / iOS generated builds
+android/
+ios/
+
+# Environment files
+.env.local
+.env.*.local
+
+# Mock server (only runs on local machine, excluded from mobile app build)
+backend-mock/

@@ -1,0 +1,140 @@
+import cors from "cors";
+import express, { type Request, type Response } from "express";
+import fs from "fs";
+import path from "path";
+
+const app = express();
+const PORT = Number(process.env.PORT || 3000);
+const TOKEN_CACHE_FILE = path.join(__dirname, ".latest-token.txt");
+
+app.use(cors());
+app.use(express.json());
+
+// In-memory mock data
+let latestRegisteredToken: string | null = null;
+
+let notificationSettings = {
+  orderUpdates: true,
+  deliveryAlerts: true,
+  soundEnabled: true,
+  promotional: false,
+};
+
+const deliveries = [
+  {
+    id: "del-101",
+    orderNumber: "ORD-9481",
+    status: "in_transit",
+    customerName: "Alex Rivera",
+    address: "742 Evergreen Terrace, Springfield",
+    latitude: 37.7749,
+    longitude: -122.4194,
+    items: ["2x Gourmet Pizza", "1x Sparkling Water"],
+    notes: "Please leave on porch if no answer.",
+    updatedAt: new Date().toLocaleTimeString(),
+  },
+  {
+    id: "del-102",
+    orderNumber: "ORD-9482",
+    status: "assigned",
+    customerName: "Samantha Chen",
+    address: "1088 Point Lobos Ave, San Francisco",
+    latitude: 37.7785,
+    longitude: -122.514,
+    items: ["1x Thai Iced Tea", "1x Pad Thai"],
+    notes: "Ring bell twice.",
+    updatedAt: new Date().toLocaleTimeString(),
+  },
+  {
+    id: "del-103",
+    orderNumber: "ORD-9483",
+    status: "completed",
+    customerName: "David Miller",
+    address: "55 Music Concourse Dr, San Francisco",
+    latitude: 37.7715,
+    longitude: -122.4687,
+    items: ["1x Family Meal Deal"],
+    notes: "Delivered to reception desk.",
+    updatedAt: new Date().toLocaleTimeString(),
+  },
+];
+
+// Request logging middleware
+app.use((req, _res, next) => {
+  console.log(`[MockServer] ${req.method} ${req.url}`);
+  next();
+});
+
+// 1. Deliveries Endpoints
+app.get("/api/deliveries", (_req: Request, res: Response) => {
+  res.json(deliveries);
+});
+
+app.get("/api/deliveries/:id", (req: Request, res: Response): void => {
+  const delivery = deliveries.find((d) => d.id === req.params.id);
+  if (!delivery) {
+    res.status(404).json({
+      message: `Delivery with ID '${req.params.id}' was not found.`,
+      code: "NOT_FOUND",
+    });
+    return;
+  }
+  res.json(delivery);
+});
+
+// 2. Notification Token Endpoint
+app.post("/api/notifications/token", (req: Request, res: Response): void => {
+  const { token, platform, deviceModel } = req.body;
+  if (!token) {
+    res.status(400).json({
+      message: "Missing 'token' in request body.",
+      code: "VALIDATION_ERROR",
+    });
+    return;
+  }
+
+  latestRegisteredToken = token;
+  try {
+    fs.writeFileSync(TOKEN_CACHE_FILE, token, "utf-8");
+  } catch (err) {
+    console.error("[MockServer] Failed to write token cache file:", err);
+  }
+
+  console.log(`\n======================================================`);
+  console.log(`[FCM TOKEN REGISTERED]`);
+  console.log(`Platform: ${platform} (${deviceModel || "Unknown Device"})`);
+  console.log(`Token: ${token}`);
+  console.log(`(Saved to backend-mock/.latest-token.txt for CLI testing)`);
+  console.log(`======================================================\n`);
+
+  res.json({ success: true, message: "Token registered successfully" });
+});
+
+// 3. Notification Settings Endpoints
+app.get("/api/notifications/settings", (_req: Request, res: Response) => {
+  res.json(notificationSettings);
+});
+
+app.put("/api/notifications/settings", (req: Request, res: Response) => {
+  notificationSettings = {
+    ...notificationSettings,
+    ...req.body,
+  };
+  console.log("[MockServer] Updated settings:", notificationSettings);
+  res.json(notificationSettings);
+});
+
+// 4. Tracking Batch Endpoint (Feature 2 foundation)
+app.post("/api/tracking/batch", (req: Request, res: Response) => {
+  const locations = req.body?.locations || [];
+  console.log(`[MockServer] Received tracking batch: ${locations.length} points.`);
+  res.json({ success: true, processed: locations.length });
+});
+
+// Start server listening on all interfaces (0.0.0.0) so phone on Wi-Fi can connect
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`\n🚀 DNP Mock Backend Server running at:`);
+  console.log(`   - Local:    http://localhost:${PORT}/api`);
+  console.log(`   - Network:  http://<YOUR_LOCAL_IP>:${PORT}/api`);
+  console.log(`   Waiting for physical device connections...\n`);
+});
