@@ -31,7 +31,7 @@ export type NotificationSettings = z.infer<typeof NotificationSettingsSchema>;
 export const OrderUpdateNotificationSchema = z.object({
   type: z.literal("order_update"),
   deliveryId: z.string().min(1, "Delivery ID is required"),
-  status: z.enum(["assigned", "in_transit", "arrived", "completed", "cancelled"]).optional(),
+  status: z.enum(["pending", "started", "arrived", "completed", "assigned", "in_transit", "cancelled"]).optional(),
   title: z.string().optional(),
   body: z.string().optional(),
 });

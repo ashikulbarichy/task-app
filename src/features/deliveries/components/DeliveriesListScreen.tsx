@@ -52,8 +52,8 @@ export function DeliveriesListScreen({ navigation }: Props) {
     >
       <View style={styles.cardHeader}>
         <Text style={styles.orderNumber}>#{item.orderNumber}</Text>
-        <View style={[styles.statusBadge, getStatusStyle(item.status)]}>
-          <Text style={styles.statusBadgeText}>
+        <View style={[styles.statusBadge, getStatusBadgeStyle(item.status)]}>
+          <Text style={[styles.statusBadgeText, getStatusTextStyle(item.status)]}>
             {item.status.toUpperCase()}
           </Text>
         </View>
@@ -108,18 +108,31 @@ export function DeliveriesListScreen({ navigation }: Props) {
   );
 }
 
-function getStatusStyle(status: Delivery["status"]) {
+function getStatusBadgeStyle(status: Delivery["status"]) {
   switch (status) {
-    case "in_transit":
+    case "started":
       return { backgroundColor: "#DBEAFE" };
     case "arrived":
       return { backgroundColor: "#FEF3C7" };
     case "completed":
       return { backgroundColor: "#DCFCE7" };
-    case "cancelled":
-      return { backgroundColor: "#FEE2E2" };
+    case "pending":
     default:
       return { backgroundColor: "#F1F5F9" };
+  }
+}
+
+function getStatusTextStyle(status: Delivery["status"]) {
+  switch (status) {
+    case "started":
+      return { color: "#1D4ED8" };
+    case "arrived":
+      return { color: "#B45309" };
+    case "completed":
+      return { color: "#15803D" };
+    case "pending":
+    default:
+      return { color: "#475569" };
   }
 }
 

@@ -24,7 +24,7 @@ const deliveries = [
   {
     id: "del-101",
     orderNumber: "ORD-9481",
-    status: "in_transit",
+    status: "pending",
     customerName: "Alex Rivera",
     address: "742 Evergreen Terrace, Springfield",
     latitude: 37.7749,
@@ -36,7 +36,7 @@ const deliveries = [
   {
     id: "del-102",
     orderNumber: "ORD-9482",
-    status: "assigned",
+    status: "started",
     customerName: "Samantha Chen",
     address: "1088 Point Lobos Ave, San Francisco",
     latitude: 37.7785,
@@ -55,6 +55,7 @@ const deliveries = [
     longitude: -122.4687,
     items: ["1x Family Meal Deal"],
     notes: "Delivered to reception desk.",
+    recipientName: "David M.",
     updatedAt: new Date().toLocaleTimeString(),
   },
 ];
@@ -79,6 +80,79 @@ app.get("/api/deliveries/:id", (req: Request, res: Response): void => {
     });
     return;
   }
+  res.json(delivery);
+});
+
+// Update delivery status (with optional 500 error simulation)
+app.patch("/api/deliveries/:id/status", (req: Request, res: Response): void => {
+  if (req.headers["x-mock-error"] === "500" || req.query.simulateError === "500") {
+    console.log(`[MockServer] 💥 SIMULATING 500 ERROR on PATCH status for ${req.params.id}`);
+    res.status(500).json({
+      message: "Simulated Internal Server Error (500) to test React Query optimistic rollback.",
+      code: "SERVER_ERROR",
+    });
+    return;
+  }
+
+  const delivery = deliveries.find((d) => d.id === req.params.id);
+  if (!delivery) {
+    res.status(404).json({
+      message: `Delivery with ID '${req.params.id}' was not found.`,
+      code: "NOT_FOUND",
+    });
+    return;
+  }
+
+  const { status } = req.body;
+  if (!status) {
+    res.status(400).json({
+      message: "Missing 'status' in request body.",
+      code: "VALIDATION_ERROR",
+    });
+    return;
+  }
+
+  delivery.status = status;
+  delivery.updatedAt = new Date().toLocaleTimeString();
+  console.log(`[MockServer] Delivery ${delivery.id} status updated to '${status}'.`);
+  res.json(delivery);
+});
+
+// Complete delivery with Proof of Delivery (with optional 500 error simulation)
+app.post("/api/deliveries/:id/complete", (req: Request, res: Response): void => {
+  if (req.headers["x-mock-error"] === "500" || req.query.simulateError === "500") {
+    console.log(`[MockServer] 💥 SIMULATING 500 ERROR on complete delivery for ${req.params.id}`);
+    res.status(500).json({
+      message: "Simulated Internal Server Error (500) to test React Query optimistic rollback.",
+      code: "SERVER_ERROR",
+    });
+    return;
+  }
+
+  const delivery = deliveries.find((d) => d.id === req.params.id);
+  if (!delivery) {
+    res.status(404).json({
+      message: `Delivery with ID '${req.params.id}' was not found.`,
+      code: "NOT_FOUND",
+    });
+    return;
+  }
+
+  const { recipientName, notes } = req.body;
+  if (!recipientName) {
+    res.status(400).json({
+      message: "Missing 'recipientName' in request body.",
+      code: "VALIDATION_ERROR",
+    });
+    return;
+  }
+
+  delivery.status = "completed";
+  delivery.recipientName = recipientName;
+  delivery.notes = notes || "";
+  delivery.updatedAt = new Date().toLocaleTimeString();
+
+  console.log(`[MockServer] Delivery ${delivery.id} completed. Recipient: ${recipientName}`);
   res.json(delivery);
 });
 
