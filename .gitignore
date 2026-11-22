@@ -35,3 +35,6 @@ backend-mock/*.json.key
 backend-mock/serviceAccountKey.json
 serviceAccount*.json
 *firebase-adminsdk*.json
+
+# AI agent configurations (local only)
+.agents/
