@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import NetInfo from "@react-native-community/netinfo";
 
 import type { LocationPoint } from "./schemas";
 import { sendLocationBatch } from "./service";
@@ -18,6 +19,37 @@ export const MAX_QUEUE_CAPACITY = 500;
 
 // Mutex flag preventing concurrent flush attempts
 let isFlushing = false;
+let isOnlineListenerAttached = false;
+
+/**
+ * Attaches NetInfo listener so that whenever connectivity is restored (e.g. Airplane Mode turned OFF),
+ * any accumulated offline location points are automatically flushed in a throttled HTTP batch.
+ */
+export function setupLocationQueueNetworkListener(): () => void {
+  if (isOnlineListenerAttached) {
+    return () => {};
+  }
+  isOnlineListenerAttached = true;
+
+  let wasOffline = false;
+
+  const unsubscribe = NetInfo.addEventListener((state) => {
+    const isOnline = Boolean(state.isConnected && state.isInternetReachable !== false);
+
+    if (!isOnline) {
+      wasOffline = true;
+    } else if (wasOffline) {
+      wasOffline = false;
+      console.log("[LocationQueue] Network connectivity restored. Draining offline location queue…");
+      void flushQueue();
+    }
+  });
+
+  return () => {
+    isOnlineListenerAttached = false;
+    unsubscribe();
+  };
+}
 
 /**
  * Appends newly validated location points to persistent offline storage.

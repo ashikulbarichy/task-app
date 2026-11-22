@@ -12,6 +12,7 @@ app.use(express.json());
 
 // In-memory mock data
 let latestRegisteredToken: string | null = null;
+const latestTrackingLocations = new Map<string, any>();
 
 let notificationSettings = {
   orderUpdates: true,
@@ -198,11 +199,48 @@ app.put("/api/notifications/settings", (req: Request, res: Response) => {
   res.json(notificationSettings);
 });
 
-// 4. Tracking Batch Endpoint (Feature 2 foundation)
+// 4. Tracking Endpoints (Feature 2)
 app.post("/api/tracking/batch", (req: Request, res: Response) => {
   const locations = req.body?.locations || [];
+  for (const loc of locations) {
+    if (loc.deliveryId) {
+      latestTrackingLocations.set(loc.deliveryId, loc);
+    }
+  }
   console.log(`[MockServer] Received tracking batch: ${locations.length} points.`);
   res.json({ success: true, processed: locations.length });
+});
+
+// Fetch latest location for customer live tracking
+app.get("/api/tracking/:deliveryId/latest", (req: Request, res: Response): void => {
+  const deliveryId = req.params.deliveryId;
+  if (!deliveryId) {
+    res.status(400).json({ message: "Delivery ID parameter is required", code: "VALIDATION_ERROR" });
+    return;
+  }
+
+  const loc = latestTrackingLocations.get(deliveryId);
+  if (loc) {
+    res.json(loc);
+    return;
+  }
+
+  // Fallback: If driver hasn't sent GPS fixes yet, provide destination-relative coordinates
+  const delivery = deliveries.find((d) => d.id === deliveryId);
+  if (delivery && delivery.latitude && delivery.longitude) {
+    res.json({
+      latitude: delivery.latitude - 0.003,
+      longitude: delivery.longitude - 0.003,
+      accuracy: 12,
+      speed: 7.2,
+      heading: 90,
+      timestamp: Date.now(),
+      deliveryId: delivery.id,
+    });
+    return;
+  }
+
+  res.status(404).json({ message: "No tracking fixes available", code: "NOT_FOUND" });
 });
 
 // Start server listening on all interfaces (0.0.0.0) so phone on Wi-Fi can connect

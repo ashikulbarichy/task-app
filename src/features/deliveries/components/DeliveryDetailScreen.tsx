@@ -304,6 +304,14 @@ export function DeliveryDetailScreen({ route, navigation }: Props) {
             </Text>
           </View>
         )}
+
+        {/* Customer Live Tracking View (Stage 4 & 5) */}
+        <TouchableOpacity
+          style={[styles.actionButton, styles.customerViewButton]}
+          onPress={() => navigation.navigate("CustomerTracking", { deliveryId: delivery.id })}
+        >
+          <Text style={styles.customerViewButtonText}>👁 View Customer Live Tracking</Text>
+        </TouchableOpacity>
       </View>
 
       <Pressable
@@ -540,6 +548,16 @@ const styles = StyleSheet.create({
     backgroundColor: "#EFF6FF",
     borderWidth: 1,
     borderColor: "#BFDBFE",
+  },
+  customerViewButton: {
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1.5,
+    borderColor: "#6366F1",
+  },
+  customerViewButtonText: {
+    color: "#4F46E5",
+    fontSize: 15,
+    fontWeight: "700",
   },
   actionButtonText: {
     color: "#FFFFFF",

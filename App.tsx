@@ -10,8 +10,11 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { DeliveriesListScreen } from "@/features/deliveries/components/DeliveriesListScreen";
 import { DeliveryDetailScreen } from "@/features/deliveries/components/DeliveryDetailScreen";
 import { NotificationSettingsScreen } from "@/features/notifications/components/NotificationSettingsScreen";
+import { CustomerTrackingScreen } from "@/features/tracking/components/CustomerTrackingScreen";
 import { DriverMapScreen } from "@/features/tracking/components/DriverMapScreen";
 import { LocationPermissionScreen } from "@/features/tracking/components/LocationPermissionScreen";
+import { checkAndResumeTrackingOnStartup } from "@/features/tracking/backgroundTask";
+import { setupLocationQueueNetworkListener } from "@/features/tracking/locationQueue";
 import {
   backgroundMessageHandler,
   useNotificationHandlers,
@@ -50,6 +53,7 @@ const linking = {
       NotificationSettings: "settings/notifications",
       DriverMap: "tracking/driver-map",
       LocationPermission: "tracking/permissions",
+      CustomerTracking: "tracking/customer/:deliveryId",
     },
   },
 };
@@ -61,9 +65,13 @@ function RootAppNavigator() {
   // 2. Attach foreground, background-tap, and killed-state notification handlers
   useNotificationHandlers();
 
-  // 3. Connect AppState and NetInfo to TanStack React Query focus/online managers
+  // 3. Connect AppState, NetInfo listeners, and run Stage 5 startup recovery
   useEffect(() => {
     const cleanupListeners = setupQueryClientListeners();
+    const cleanupNetworkQueue = setupLocationQueueNetworkListener();
+
+    // Stage 5 Hardening: resume tracking if app restarted during active delivery
+    void checkAndResumeTrackingOnStartup();
 
     // Register global UI reactions for 401 expiry and error toasts
     registerGlobalErrorHandlers({
@@ -77,6 +85,7 @@ function RootAppNavigator() {
 
     return () => {
       cleanupListeners();
+      cleanupNetworkQueue();
     };
   }, []);
 
@@ -119,6 +128,11 @@ function RootAppNavigator() {
           name="LocationPermission"
           component={LocationPermissionScreen}
           options={{ title: "Location Permissions" }}
+        />
+        <Stack.Screen
+          name="CustomerTracking"
+          component={CustomerTrackingScreen}
+          options={{ title: "Live Order Tracking" }}
         />
       </Stack.Navigator>
     </NavigationContainer>

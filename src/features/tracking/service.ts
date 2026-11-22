@@ -4,6 +4,7 @@ import {
   LocationBatchResponseSchema,
   LocationBatchSchema,
   type LocationPoint,
+  LocationPointSchema,
 } from "./schemas";
 
 /**
@@ -31,4 +32,18 @@ export async function sendLocationBatch(
 
   // 3. Defensively validate backend response structure
   return LocationBatchResponseSchema.parse(response.data);
+}
+
+/**
+ * Fetches the latest published driver location for a delivery order.
+ * Used by Customer Live Tracking screen.
+ */
+export async function getLatestDeliveryLocation(
+  deliveryId: string,
+): Promise<LocationPoint | null> {
+  const response = await api.get(`/tracking/${deliveryId}/latest`);
+  if (!response.data) {
+    return null;
+  }
+  return LocationPointSchema.parse(response.data);
 }

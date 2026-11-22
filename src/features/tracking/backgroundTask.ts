@@ -2,6 +2,7 @@ import * as Location from "expo-location";
 import * as TaskManager from "expo-task-manager";
 import { Alert, Linking, Platform } from "react-native";
 
+import { getDeliveryById } from "@/features/deliveries/service";
 import {
   enqueuePoints,
   flushQueue,
@@ -243,5 +244,39 @@ export function promptBatteryOptimizationInfo(): void {
         { text: "Open App Settings", onPress: () => void Linking.openSettings() },
       ],
     );
+  }
+}
+
+/**
+ * Startup Recovery Logic (Stage 5 Hardening):
+ * If the app was terminated / killed by the OS during an active delivery ('started' or 'arrived')
+ * and subsequently restarted:
+ * 1. Checks persistent storage for an active delivery ID.
+ * 2. Fetches current delivery state from backend.
+ * 3. If delivery is still in 'started' or 'arrived', verifies and resumes background location updates.
+ * 4. If delivery was marked 'completed', automatically halts tracking and clears active storage.
+ */
+export async function checkAndResumeTrackingOnStartup(): Promise<void> {
+  try {
+    const activeDeliveryId = await getActiveDeliveryId();
+    if (!activeDeliveryId) {
+      return;
+    }
+
+    console.log(`[StartupRecovery] Found saved active delivery: ${activeDeliveryId}. Checking state…`);
+    const delivery = await getDeliveryById(activeDeliveryId);
+
+    if (delivery.status === "started" || delivery.status === "arrived") {
+      const isRunning = await Location.hasStartedLocationUpdatesAsync(BACKGROUND_LOCATION_TASK);
+      if (!isRunning) {
+        console.log(`[StartupRecovery] Resuming background tracking for order ${activeDeliveryId}…`);
+        await startBackgroundTracking({ deliveryId: activeDeliveryId });
+      }
+    } else {
+      console.log(`[StartupRecovery] Order ${activeDeliveryId} is '${delivery.status}'. Halting tracking.`);
+      await stopBackgroundTracking();
+    }
+  } catch (err) {
+    console.warn("[StartupRecovery] Unable to verify delivery status on startup:", err);
   }
 }
