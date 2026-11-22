@@ -21,6 +21,7 @@ import type { Delivery } from "../schemas";
 
 type Props = NativeStackScreenProps<RootStackParamList, "DeliveriesList">;
 
+// Rendering deliveries list screen
 export function DeliveriesListScreen({ navigation }: Props) {
   const { data: deliveries, isPending, error, refetch, isRefetching } =
     useDeliveries();
@@ -120,32 +121,31 @@ const styles = StyleSheet.create({
   },
   headerButtons: {
     flexDirection: "row",
-    alignItems: "center",
     gap: 8,
   },
   mapButton: {
-    backgroundColor: "#2563EB",
-    paddingHorizontal: 12,
+    backgroundColor: "#EFF6FF",
+    paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
-  },
-  mapButtonText: {
-    color: "#FFFFFF",
-    fontWeight: "600",
-    fontSize: 13,
-  },
-  settingsButton: {
-    backgroundColor: "#EFF6FF",
     borderWidth: 1,
     borderColor: "#BFDBFE",
+  },
+  mapButtonText: {
+    color: "#2563EB",
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  settingsButton: {
+    backgroundColor: "#F1F5F9",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
   },
   settingsButtonText: {
-    color: "#2563EB",
-    fontWeight: "600",
+    color: "#475569",
     fontSize: 13,
+    fontWeight: "600",
   },
   listContent: {
     padding: 16,
@@ -165,12 +165,13 @@ const styles = StyleSheet.create({
   customerName: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#334155",
+    color: "#1E293B",
+    marginBottom: 4,
   },
   address: {
     fontSize: 13,
     color: "#64748B",
-    marginTop: 2,
+    lineHeight: 18,
   },
   timestamp: {
     fontSize: 11,
@@ -178,11 +179,11 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   emptyContainer: {
-    padding: 32,
+    paddingVertical: 64,
     alignItems: "center",
   },
   emptyText: {
-    color: "#64748B",
+    color: "#94A3B8",
     fontSize: 14,
   },
 });

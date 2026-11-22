@@ -21,6 +21,7 @@ interface LocationPermissionScreenProps {
   onContinueAnyway?: () => void;
 }
 
+// Rendering location permission screen
 export function LocationPermissionScreen({
   onPermissionsGranted,
   onContinueAnyway,
@@ -87,7 +88,6 @@ export function LocationPermissionScreen({
       </View>
 
       <View style={styles.cardSection}>
-        {/* Permission 1: Foreground */}
         <Card style={styles.card}>
           <View style={styles.cardHeader}>
             <Text style={styles.cardTitle}>1. Foreground Location</Text>
@@ -113,7 +113,6 @@ export function LocationPermissionScreen({
           </Text>
         </Card>
 
-        {/* Permission 2: Background */}
         <Card style={styles.card}>
           <View style={styles.cardHeader}>
             <Text style={styles.cardTitle}>
@@ -142,7 +141,6 @@ export function LocationPermissionScreen({
         </Card>
       </View>
 
-      {/* Rationale Notice */}
       <View style={styles.noticeBox}>
         <Text style={styles.noticeText}>
           🔒 Your location is only captured and transmitted while an active delivery order is
@@ -150,7 +148,6 @@ export function LocationPermissionScreen({
         </Text>
       </View>
 
-      {/* Action Buttons */}
       <View style={styles.buttonContainer}>
         {!allGranted ? (
           <>
@@ -250,9 +247,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   badge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
   },
   badgeGranted: {
     backgroundColor: "#DCFCE7",
@@ -261,36 +258,34 @@ const styles = StyleSheet.create({
     backgroundColor: "#FEF3C7",
   },
   badgeText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "700",
   },
   badgeTextGranted: {
-    color: "#166534",
+    color: "#15803D",
   },
   badgeTextPending: {
-    color: "#92400E",
+    color: "#B45309",
   },
   cardDescription: {
     fontSize: 13,
-    color: "#475569",
+    color: "#64748B",
     lineHeight: 18,
   },
   noticeBox: {
     backgroundColor: "#F1F5F9",
-    borderRadius: 12,
     padding: 14,
-    borderLeftWidth: 4,
-    borderLeftColor: "#2563EB",
+    borderRadius: 10,
     marginBottom: 24,
   },
   noticeText: {
     fontSize: 12,
-    color: "#334155",
-    lineHeight: 18,
+    color: "#475569",
+    lineHeight: 17,
   },
   buttonContainer: {
     gap: 12,
-    marginBottom: 16,
+    marginBottom: 20,
   },
   textButton: {
     paddingVertical: 8,
@@ -299,6 +294,6 @@ const styles = StyleSheet.create({
   textButtonLabel: {
     color: "#64748B",
     fontSize: 13,
-    textDecorationLine: "underline",
+    fontWeight: "600",
   },
 });

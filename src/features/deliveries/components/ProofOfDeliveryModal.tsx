@@ -25,6 +25,7 @@ interface ProofOfDeliveryModalProps {
   orderNumber: string;
 }
 
+// Rendering proof of delivery modal
 export function ProofOfDeliveryModal({
   visible,
   onClose,
@@ -72,7 +73,6 @@ export function ProofOfDeliveryModal({
             <Text style={styles.subtitle}>Order #{orderNumber}</Text>
           </View>
 
-          {/* Recipient Name Field */}
           <View style={styles.fieldGroup}>
             <Text style={styles.label}>
               Recipient Name <Text style={styles.required}>*</Text>
@@ -102,7 +102,6 @@ export function ProofOfDeliveryModal({
             )}
           </View>
 
-          {/* Delivery Notes Field */}
           <View style={styles.fieldGroup}>
             <Text style={styles.label}>Delivery Notes (Optional)</Text>
             <Controller
@@ -127,7 +126,6 @@ export function ProofOfDeliveryModal({
             )}
           </View>
 
-          {/* Modal Actions */}
           <View style={styles.actionRow}>
             <AppButton
               title="Cancel"

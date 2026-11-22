@@ -32,18 +32,10 @@ import {
   setupQueryClientListeners,
 } from "@/lib/queryClient";
 
-/**
- * Register Firebase background message handler at top-level.
- * Ensures headless execution when the app is in the background or killed.
- */
 messaging().setBackgroundMessageHandler(backgroundMessageHandler);
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
-/**
- * Deep linking configuration for Expo Dev Client and push notifications.
- * Matches the scheme defined in app.json ("dnpdelivery").
- */
 const linking = {
   prefixes: [`${env.EXPO_PUBLIC_APP_SCHEME}://`, "https://dnp.app"],
   config: {
@@ -58,22 +50,17 @@ const linking = {
   },
 };
 
+// Rendering root app navigator
 function RootAppNavigator() {
-  // 1. Sync FCM token & subscribe to token rotations
   useFcmTokenSync();
-
-  // 2. Attach foreground, background-tap, and killed-state notification handlers
   useNotificationHandlers();
 
-  // 3. Connect AppState, NetInfo listeners, and run Stage 5 startup recovery
   useEffect(() => {
     const cleanupListeners = setupQueryClientListeners();
     const cleanupNetworkQueue = setupLocationQueueNetworkListener();
 
-    // Stage 5 Hardening: resume tracking if app restarted during active delivery
     void checkAndResumeTrackingOnStartup();
 
-    // Register global UI reactions for 401 expiry and error toasts
     registerGlobalErrorHandlers({
       onUnauthorized: () => {
         Alert.alert("Session Expired", "Please log in again.");
@@ -139,6 +126,7 @@ function RootAppNavigator() {
   );
 }
 
+// Rendering root application
 export default function App() {
   return (
     <SafeAreaProvider>

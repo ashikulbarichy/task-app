@@ -7,24 +7,13 @@ import { sendLocationBatch } from "./service";
 const QUEUE_STORAGE_KEY = "@dnp_tracking_offline_queue";
 const ACTIVE_DELIVERY_KEY = "@dnp_tracking_active_delivery_id";
 
-/**
- * Flush threshold: When the queue reaches this many points, trigger an automatic flush.
- */
 export const BATCH_FLUSH_THRESHOLD = 5;
-
-/**
- * Hard limit on queued points to protect storage if the device stays offline for hours.
- */
 export const MAX_QUEUE_CAPACITY = 500;
 
-// Mutex flag preventing concurrent flush attempts
 let isFlushing = false;
 let isOnlineListenerAttached = false;
 
-/**
- * Attaches NetInfo listener so that whenever connectivity is restored (e.g. Airplane Mode turned OFF),
- * any accumulated offline location points are automatically flushed in a throttled HTTP batch.
- */
+// Setting up location queue network listener
 export function setupLocationQueueNetworkListener(): () => void {
   if (isOnlineListenerAttached) {
     return () => {};
@@ -51,10 +40,7 @@ export function setupLocationQueueNetworkListener(): () => void {
   };
 }
 
-/**
- * Appends newly validated location points to persistent offline storage.
- * If the queue reaches `BATCH_FLUSH_THRESHOLD`, an automatic flush is triggered.
- */
+// Enqueueing location points
 export async function enqueuePoints(points: LocationPoint[]): Promise<number> {
   if (points.length === 0) {
     return getQueueLength();
@@ -64,7 +50,6 @@ export async function enqueuePoints(points: LocationPoint[]): Promise<number> {
     const raw = await AsyncStorage.getItem(QUEUE_STORAGE_KEY);
     const existing: LocationPoint[] = raw ? JSON.parse(raw) : [];
 
-    // Append and enforce capacity cap (dropping oldest points first if full)
     const combined = [...existing, ...points];
     const trimmed =
       combined.length > MAX_QUEUE_CAPACITY
@@ -73,7 +58,6 @@ export async function enqueuePoints(points: LocationPoint[]): Promise<number> {
 
     await AsyncStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(trimmed));
 
-    // Auto-flush if threshold is reached
     if (trimmed.length >= BATCH_FLUSH_THRESHOLD) {
       void flushQueue();
     }
@@ -85,9 +69,7 @@ export async function enqueuePoints(points: LocationPoint[]): Promise<number> {
   }
 }
 
-/**
- * Reads all currently queued points from storage.
- */
+// Fetching queued location points
 export async function getQueuedPoints(): Promise<LocationPoint[]> {
   try {
     const raw = await AsyncStorage.getItem(QUEUE_STORAGE_KEY);
@@ -98,19 +80,13 @@ export async function getQueuedPoints(): Promise<LocationPoint[]> {
   }
 }
 
-/**
- * Returns the current number of queued points awaiting transmission.
- */
+// Fetching queue length
 export async function getQueueLength(): Promise<number> {
   const points = await getQueuedPoints();
   return points.length;
 }
 
-/**
- * Flushes the queue by transmitting all accumulated points to the backend.
- * Uses an execution lock to prevent duplicate concurrent network requests.
- * Points remain safely persisted until the backend acknowledges receipt.
- */
+// Flushing location queue
 export async function flushQueue(): Promise<{ sent: number; remaining: number }> {
   if (isFlushing) {
     const len = await getQueueLength();
@@ -118,6 +94,7 @@ export async function flushQueue(): Promise<{ sent: number; remaining: number }>
   }
 
   isFlushing = true;
+
   try {
     const raw = await AsyncStorage.getItem(QUEUE_STORAGE_KEY);
     if (!raw) {
@@ -129,18 +106,15 @@ export async function flushQueue(): Promise<{ sent: number; remaining: number }>
       return { sent: 0, remaining: 0 };
     }
 
-    // Attempt transmission via plain TS service
     const response = await sendLocationBatch(points);
 
     if (response.success) {
-      // Clean up transmitted points
       await AsyncStorage.removeItem(QUEUE_STORAGE_KEY);
       return { sent: points.length, remaining: 0 };
     }
 
     return { sent: 0, remaining: points.length };
   } catch (error) {
-    // Keep items in queue when network request fails (e.g. offline, timeout)
     const len = await getQueueLength();
     console.warn(`[LocationQueue] Sync failed (retained ${len} points for retry):`, error);
     return { sent: 0, remaining: len };
@@ -149,9 +123,7 @@ export async function flushQueue(): Promise<{ sent: number; remaining: number }>
   }
 }
 
-/**
- * Clears the queue unconditionally (e.g., on delivery cancellation or driver sign-out).
- */
+// Clearing location queue
 export async function clearQueue(): Promise<void> {
   try {
     await AsyncStorage.removeItem(QUEUE_STORAGE_KEY);
@@ -160,10 +132,7 @@ export async function clearQueue(): Promise<void> {
   }
 }
 
-/**
- * Sets the delivery ID currently in progress.
- * Background tasks read this directly from storage to tag location points without React state.
- */
+// Setting active delivery ID
 export async function setActiveDeliveryId(deliveryId: string | null): Promise<void> {
   try {
     if (deliveryId) {
@@ -176,9 +145,7 @@ export async function setActiveDeliveryId(deliveryId: string | null): Promise<vo
   }
 }
 
-/**
- * Gets the active delivery ID for background tagging.
- */
+// Getting active delivery ID
 export async function getActiveDeliveryId(): Promise<string | null> {
   try {
     return await AsyncStorage.getItem(ACTIVE_DELIVERY_KEY);

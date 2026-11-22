@@ -27,6 +27,7 @@ interface AppButtonProps {
   icon?: React.ReactNode;
 }
 
+// Rendering app button
 export function AppButton({
   title,
   onPress,
@@ -113,31 +114,25 @@ const VARIANT_STYLES: Record<ButtonVariant, { button: ViewStyle; text: TextStyle
 
 const styles = StyleSheet.create({
   baseButton: {
-    flexDirection: "row",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 10,
+    flexDirection: "row",
     gap: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  baseText: {
-    fontSize: 15,
-    fontWeight: "700",
-  },
-  disabledButton: {
-    opacity: 0.6,
-  },
-  disabledText: {
-    opacity: 0.9,
   },
   pressedButton: {
     opacity: 0.85,
-    transform: [{ scale: 0.99 }],
+  },
+  disabledButton: {
+    opacity: 0.5,
+  },
+  baseText: {
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  disabledText: {
+    opacity: 0.8,
   },
 });

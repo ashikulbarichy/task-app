@@ -9,6 +9,7 @@ interface ErrorViewProps {
   style?: ViewStyle;
 }
 
+// Rendering error view
 export function ErrorView({
   title = "Something went wrong",
   message = "An unexpected error occurred. Please try again.",

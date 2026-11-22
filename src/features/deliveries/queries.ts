@@ -9,18 +9,12 @@ import {
   updateDeliveryStatus,
 } from "./service";
 
-/**
- * Key factory for deliveries feature.
- * Canonical key structure: no inline string arrays across the app.
- */
 export const deliveryKeys = {
   all: ["deliveries"] as const,
   detail: (id: string) => ["deliveries", id] as const,
 };
 
-/**
- * Hook to fetch all active deliveries with 30s stale time.
- */
+// Fetching deliveries query
 export function useDeliveries() {
   return useQuery({
     queryKey: deliveryKeys.all,
@@ -29,9 +23,7 @@ export function useDeliveries() {
   });
 }
 
-/**
- * Hook to fetch a single delivery by ID.
- */
+// Fetching delivery detail query
 export function useDeliveryDetail(id: string) {
   return useQuery({
     queryKey: deliveryKeys.detail(id),
@@ -41,18 +33,7 @@ export function useDeliveryDetail(id: string) {
   });
 }
 
-/**
- * Mutation for delivery status transitions with FULL optimistic cache updates.
- *
- * 1. onMutate:
- *    - Cancels ongoing queries to prevent race conditions.
- *    - Snapshots previous query cache data for both list and detail.
- *    - Optimistically updates UI state immediately.
- * 2. onError:
- *    - Automatically rolls back cache to snapshot if server fails.
- * 3. onSettled:
- *    - Revalidates cache with ground truth from the server.
- */
+// Updating delivery status mutation
 export function useUpdateDeliveryStatus() {
   const queryClient = useQueryClient();
 
@@ -64,17 +45,14 @@ export function useUpdateDeliveryStatus() {
     onMutate: async (newStatusPayload) => {
       const detailKey = deliveryKeys.detail(newStatusPayload.id);
 
-      // Cancel outgoing refetches so they don't overwrite optimistic update
       await queryClient.cancelQueries({ queryKey: deliveryKeys.all });
       await queryClient.cancelQueries({ queryKey: detailKey });
 
-      // Snapshot previous cache state
       const previousAll = queryClient.getQueryData<Delivery[]>(deliveryKeys.all);
       const previousDetail = queryClient.getQueryData<Delivery>(detailKey);
 
       const timestamp = new Date().toLocaleTimeString();
 
-      // Optimistically update Deliveries List
       if (previousAll) {
         queryClient.setQueryData<Delivery[]>(
           deliveryKeys.all,
@@ -86,7 +64,6 @@ export function useUpdateDeliveryStatus() {
         );
       }
 
-      // Optimistically update Delivery Detail
       if (previousDetail) {
         queryClient.setQueryData<Delivery>(detailKey, {
           ...previousDetail,
@@ -95,12 +72,10 @@ export function useUpdateDeliveryStatus() {
         });
       }
 
-      // Return context for rollback
       return { previousAll, previousDetail, detailKey };
     },
 
     onError: (_err, _vars, context) => {
-      // Rollback to previous state on failure (e.g. 500 error)
       if (context?.previousAll) {
         queryClient.setQueryData(deliveryKeys.all, context.previousAll);
       }
@@ -110,24 +85,18 @@ export function useUpdateDeliveryStatus() {
     },
 
     onSuccess: (_data, vars) => {
-      // Invalidate queries as required by prompt instructions
       void queryClient.invalidateQueries({ queryKey: deliveryKeys.all });
       void queryClient.invalidateQueries({ queryKey: deliveryKeys.detail(vars.id) });
     },
 
     onSettled: (_data, _err, vars) => {
-      // Always re-sync with server state after mutation completes
       void queryClient.invalidateQueries({ queryKey: deliveryKeys.all });
       void queryClient.invalidateQueries({ queryKey: deliveryKeys.detail(vars.id) });
     },
   });
 }
 
-/**
- * Mutation to complete a delivery using Proof of Delivery (POD).
- * On successful completion, automatically stops background location tracking
- * to conserve battery and protect driver privacy.
- */
+// Completing delivery mutation
 export function useCompleteDelivery() {
   const queryClient = useQueryClient();
 
@@ -189,20 +158,17 @@ export function useCompleteDelivery() {
     },
 
     onSuccess: async (_data, vars) => {
-      // Stop background location updates now that the delivery is finalized
       try {
         await stopBackgroundTracking();
       } catch (err) {
         console.warn("[useCompleteDelivery] Error stopping background tracking:", err);
       }
 
-      // Invalidate queries as required by Prompt 6 instructions
       void queryClient.invalidateQueries({ queryKey: deliveryKeys.all });
       void queryClient.invalidateQueries({ queryKey: deliveryKeys.detail(vars.id) });
     },
 
     onSettled: (_data, _err, vars) => {
-      // Always re-sync cache with ground truth from the server
       void queryClient.invalidateQueries({ queryKey: deliveryKeys.all });
       void queryClient.invalidateQueries({ queryKey: deliveryKeys.detail(vars.id) });
     },

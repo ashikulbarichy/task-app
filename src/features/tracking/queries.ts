@@ -5,20 +5,12 @@ import { env } from "@/lib/env";
 import { type LocationPoint, LocationPointSchema } from "./schemas";
 import { getLatestDeliveryLocation } from "./service";
 
-/**
- * Key factory for live delivery tracking queries.
- */
 export const trackingKeys = {
   all: ["tracking"] as const,
   live: (deliveryId: string) => ["tracking", deliveryId] as const,
 };
 
-/**
- * Strategy 1: Polling with refetchInterval as baseline.
- * Polls the backend every 4000ms.
- *
- * STRICT REACT QUERY RULE: Never mix refetchInterval with WebSocket pushes on the same query.
- */
+// Polling customer live tracking query
 export function useCustomerLiveTrackingPolling(deliveryId: string) {
   return useQuery({
     queryKey: trackingKeys.live(deliveryId),
@@ -30,14 +22,7 @@ export function useCustomerLiveTrackingPolling(deliveryId: string) {
   });
 }
 
-/**
- * Strategy 2: WebSocket push directly into cache.
- * Sets staleTime to Infinity (strictly zero background polling).
- * Incoming WebSocket location payloads are validated against LocationPointSchema
- * and pushed into the cache via queryClient.setQueryData.
- *
- * STRICT REACT QUERY RULE: Never mix refetchInterval with WebSocket pushes on the same query.
- */
+// Subscribing to customer live tracking websocket
 export function useCustomerLiveTrackingWebSocket(
   deliveryId: string,
   options?: { wsUrl?: string; enabled?: boolean },
@@ -46,7 +31,6 @@ export function useCustomerLiveTrackingWebSocket(
   const isEnabled = options?.enabled ?? true;
   const socketRef = useRef<WebSocket | null>(null);
 
-  // Baseline cache query: staleTime: Infinity guarantees zero polling overhead
   const query = useQuery({
     queryKey: trackingKeys.live(deliveryId),
     queryFn: () => getLatestDeliveryLocation(deliveryId),
@@ -59,7 +43,6 @@ export function useCustomerLiveTrackingWebSocket(
       return;
     }
 
-    // Convert API HTTP URL to WS URL (e.g. http://192.168.0.167:3000/api -> ws://192.168.0.167:3000/ws/tracking/del-101)
     const baseWsUrl =
       options?.wsUrl ||
       env.EXPO_PUBLIC_API_URL.replace(/^http:\/\//, "ws://")
@@ -81,7 +64,6 @@ export function useCustomerLiveTrackingWebSocket(
           const parsed = LocationPointSchema.safeParse(raw);
 
           if (parsed.success) {
-            // Push directly into React Query cache
             queryClient.setQueryData<LocationPoint>(
               trackingKeys.live(deliveryId),
               parsed.data,

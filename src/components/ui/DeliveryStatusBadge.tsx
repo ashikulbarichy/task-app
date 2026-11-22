@@ -36,7 +36,6 @@ const STATUS_THEMES: Record<string, StatusTheme> = {
     text: "#15803D",
     label: "COMPLETED",
   },
-  // Fallbacks for legacy/mock statuses
   assigned: {
     bg: "#F1F5F9",
     text: "#475569",
@@ -54,6 +53,7 @@ const STATUS_THEMES: Record<string, StatusTheme> = {
   },
 };
 
+// Rendering delivery status badge
 export function DeliveryStatusBadge({
   status,
   style,

@@ -1,9 +1,5 @@
 import { z } from "zod";
 
-/**
- * Valid delivery statuses in strict linear lifecycle:
- * pending -> started -> arrived -> completed
- */
 export const DeliveryStatusSchema = z.enum([
   "pending",
   "started",
@@ -13,20 +9,14 @@ export const DeliveryStatusSchema = z.enum([
 
 export type DeliveryStatus = z.infer<typeof DeliveryStatusSchema>;
 
-/**
- * Strict legal status transitions.
- * Delivery must follow this linear progression — jumps or backward steps are rejected.
- */
 export const VALID_STATUS_TRANSITIONS: Record<DeliveryStatus, readonly DeliveryStatus[]> = {
   pending: ["started"],
   started: ["arrived"],
   arrived: ["completed"],
-  completed: [], // Terminal state
+  completed: [],
 } as const;
 
-/**
- * Helper to check if a status transition is permitted.
- */
+// Validating status transition
 export function isValidStatusTransition(
   current: DeliveryStatus,
   next: DeliveryStatus,
@@ -35,9 +25,6 @@ export function isValidStatusTransition(
   return allowed ? allowed.includes(next) : false;
 }
 
-/**
- * Zod refinement schema enforcing valid status transitions at runtime.
- */
 export const StatusTransitionPayloadSchema = z
   .object({
     id: z.string().min(1, "Delivery ID is required"),
@@ -56,9 +43,6 @@ export const StatusTransitionPayloadSchema = z
 
 export type StatusTransitionPayload = z.infer<typeof StatusTransitionPayloadSchema>;
 
-/**
- * Proof of Delivery form schema for react-hook-form.
- */
 export const ProofOfDeliveryFormSchema = z.object({
   recipientName: z
     .string()
@@ -74,10 +58,6 @@ export const ProofOfDeliveryFormSchema = z.object({
 
 export type ProofOfDeliveryForm = z.infer<typeof ProofOfDeliveryFormSchema>;
 
-/**
- * Core Delivery entity schema.
- * Single source of truth across service, queries, and UI.
- */
 export const DeliverySchema = z.object({
   id: z.string().min(1),
   orderNumber: z.string().min(1),

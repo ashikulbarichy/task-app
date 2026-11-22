@@ -13,6 +13,7 @@ interface CardProps extends ViewProps {
   style?: ViewStyle;
 }
 
+// Rendering card
 export function Card({ children, onPress, style, ...rest }: CardProps) {
   if (onPress) {
     return (

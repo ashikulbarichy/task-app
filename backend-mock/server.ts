@@ -10,7 +10,6 @@ const TOKEN_CACHE_FILE = path.join(__dirname, ".latest-token.txt");
 app.use(cors());
 app.use(express.json());
 
-// In-memory mock data
 let latestRegisteredToken: string | null = null;
 const latestTrackingLocations = new Map<string, any>();
 
@@ -61,13 +60,11 @@ const deliveries = [
   },
 ];
 
-// Request logging middleware
 app.use((req, _res, next) => {
   console.log(`[MockServer] ${req.method} ${req.url}`);
   next();
 });
 
-// 1. Deliveries Endpoints
 app.get("/api/deliveries", (_req: Request, res: Response) => {
   res.json(deliveries);
 });
@@ -84,7 +81,6 @@ app.get("/api/deliveries/:id", (req: Request, res: Response): void => {
   res.json(delivery);
 });
 
-// Update delivery status (with optional 500 error simulation)
 app.patch("/api/deliveries/:id/status", (req: Request, res: Response): void => {
   if (req.headers["x-mock-error"] === "500" || req.query.simulateError === "500") {
     console.log(`[MockServer] 💥 SIMULATING 500 ERROR on PATCH status for ${req.params.id}`);
@@ -119,7 +115,6 @@ app.patch("/api/deliveries/:id/status", (req: Request, res: Response): void => {
   res.json(delivery);
 });
 
-// Complete delivery with Proof of Delivery (with optional 500 error simulation)
 app.post("/api/deliveries/:id/complete", (req: Request, res: Response): void => {
   if (req.headers["x-mock-error"] === "500" || req.query.simulateError === "500") {
     console.log(`[MockServer] 💥 SIMULATING 500 ERROR on complete delivery for ${req.params.id}`);
@@ -157,7 +152,6 @@ app.post("/api/deliveries/:id/complete", (req: Request, res: Response): void => 
   res.json(delivery);
 });
 
-// 2. Notification Token Endpoint
 app.post("/api/notifications/token", (req: Request, res: Response): void => {
   const { token, platform, deviceModel } = req.body;
   if (!token) {
@@ -179,13 +173,11 @@ app.post("/api/notifications/token", (req: Request, res: Response): void => {
   console.log(`[FCM TOKEN REGISTERED]`);
   console.log(`Platform: ${platform} (${deviceModel || "Unknown Device"})`);
   console.log(`Token: ${token}`);
-  console.log(`(Saved to backend-mock/.latest-token.txt for CLI testing)`);
   console.log(`======================================================\n`);
 
   res.json({ success: true, message: "Token registered successfully" });
 });
 
-// 3. Notification Settings Endpoints
 app.get("/api/notifications/settings", (_req: Request, res: Response) => {
   res.json(notificationSettings);
 });
@@ -199,7 +191,6 @@ app.put("/api/notifications/settings", (req: Request, res: Response) => {
   res.json(notificationSettings);
 });
 
-// 4. Tracking Endpoints (Feature 2)
 app.post("/api/tracking/batch", (req: Request, res: Response) => {
   const locations = req.body?.locations || [];
   for (const loc of locations) {
@@ -211,7 +202,6 @@ app.post("/api/tracking/batch", (req: Request, res: Response) => {
   res.json({ success: true, processed: locations.length });
 });
 
-// Fetch latest location for customer live tracking
 app.get("/api/tracking/:deliveryId/latest", (req: Request, res: Response): void => {
   const deliveryId = req.params.deliveryId;
   if (!deliveryId) {
@@ -225,7 +215,6 @@ app.get("/api/tracking/:deliveryId/latest", (req: Request, res: Response): void 
     return;
   }
 
-  // Fallback: If driver hasn't sent GPS fixes yet, provide destination-relative coordinates
   const delivery = deliveries.find((d) => d.id === deliveryId);
   if (delivery && delivery.latitude && delivery.longitude) {
     res.json({
@@ -243,7 +232,6 @@ app.get("/api/tracking/:deliveryId/latest", (req: Request, res: Response): void 
   res.status(404).json({ message: "No tracking fixes available", code: "NOT_FOUND" });
 });
 
-// Start server listening on all interfaces (0.0.0.0) so phone on Wi-Fi can connect
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`\n🚀 DNP Mock Backend Server running at:`);
   console.log(`   - Local:    http://localhost:${PORT}/api`);

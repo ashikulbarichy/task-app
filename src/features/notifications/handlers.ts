@@ -14,9 +14,6 @@ import {
   type PushNotificationPayload,
 } from "./schemas";
 
-/**
- * Configure foreground notification display behavior for expo-notifications.
- */
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -27,11 +24,7 @@ Notifications.setNotificationHandler({
   }),
 });
 
-/**
- * Invalidation Rule:
- * When an `order_update` arrives, immediately invalidate the deliveries list
- * and the specific delivery query so any visible screen auto-refreshes.
- */
+// Invalidating queries on order update
 function handleOrderUpdateInvalidation(payload: OrderUpdateNotification): void {
   void queryClient.invalidateQueries({
     queryKey: deliveryKeys.all,
@@ -41,10 +34,7 @@ function handleOrderUpdateInvalidation(payload: OrderUpdateNotification): void {
   });
 }
 
-/**
- * 1. Background state handler (Headless / App closed):
- * Registered at the root entry point before React runs.
- */
+// Handling background message
 export async function backgroundMessageHandler(
   remoteMessage: FirebaseMessagingTypes.RemoteMessage,
 ): Promise<void> {
@@ -64,10 +54,7 @@ export async function backgroundMessageHandler(
   }
 }
 
-/**
- * Helper to display an Expo local notification inside the 'delivery-updates' channel
- * when the app is running in the FOREGROUND.
- */
+// Displaying foreground local notification
 async function showForegroundLocalNotification(
   remoteMessage: FirebaseMessagingTypes.RemoteMessage,
   payload: PushNotificationPayload | null,
@@ -97,29 +84,20 @@ async function showForegroundLocalNotification(
   });
 }
 
-/**
- * 2. Foreground handler (App active):
- * Processes FCM onMessage events, validates defensively with Zod, invalidates
- * React Query cache, and triggers a local high-importance notification banner.
- */
+// Setting up foreground notification handler
 function setupForegroundHandler(): () => void {
   return messaging().onMessage(async (remoteMessage) => {
-    // Defense: Validate with safeParse so malformed pushes NEVER crash the app
     const payload = safeParsePushNotification(remoteMessage.data);
 
     if (payload?.type === "order_update") {
       handleOrderUpdateInvalidation(payload);
     }
 
-    // Always show local notification in foreground
     await showForegroundLocalNotification(remoteMessage, payload);
   });
 }
 
-/**
- * 3. Background tap-to-navigate handler:
- * Fires when user taps a push notification while the app was running in the background.
- */
+// Setting up notification opened handler
 function setupNotificationOpenedHandler(): () => void {
   return messaging().onNotificationOpenedApp((remoteMessage) => {
     const payload = safeParsePushNotification(remoteMessage.data);
@@ -140,10 +118,7 @@ function setupNotificationOpenedHandler(): () => void {
   });
 }
 
-/**
- * 4. Killed state handler (Cold-start):
- * Checks if the app was launched by tapping a push notification from the killed state.
- */
+// Checking killed state initial notification
 async function checkKilledStateInitialNotification(): Promise<void> {
   const initialMessage = await messaging().getInitialNotification();
   if (!initialMessage) {
@@ -167,25 +142,14 @@ async function checkKilledStateInitialNotification(): Promise<void> {
   }
 }
 
-/**
- * React hook to attach all notification runtime handlers inside the app container:
- * - Foreground listener
- * - Background tap-to-navigate listener
- * - Killed-state initial notification check
- * - Expo local notification response tap listener
- */
+// Attaching notification handlers hook
 export function useNotificationHandlers(): void {
   useEffect(() => {
-    // 1. Foreground listener
     const unsubscribeForeground = setupForegroundHandler();
-
-    // 2. Background tap listener
     const unsubscribeOpened = setupNotificationOpenedHandler();
 
-    // 3. Killed state check
     void checkKilledStateInitialNotification();
 
-    // 4. Handle tap on Expo foreground local notifications
     const subscriptionLocalTap =
       Notifications.addNotificationResponseReceivedListener((response) => {
         const data = response.notification.request.content.data;

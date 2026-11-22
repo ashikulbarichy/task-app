@@ -1,9 +1,5 @@
 import { z } from "zod";
 
-/**
- * Zod schema for type-safe environment variables.
- * Inlines EXPO_PUBLIC_* variables into the client bundle at build time.
- */
 const EnvSchema = z.object({
   EXPO_PUBLIC_API_URL: z
     .string()
@@ -27,6 +23,7 @@ const EnvSchema = z.object({
 
 export type Env = z.infer<typeof EnvSchema>;
 
+// Parsing environment variables
 function parseEnv(): Env {
   const result = EnvSchema.safeParse({
     EXPO_PUBLIC_API_URL: process.env.EXPO_PUBLIC_API_URL,
@@ -46,7 +43,6 @@ function parseEnv(): Env {
         result.error.flatten().fieldErrors,
       );
     }
-    // Fallback to defaults to prevent startup crash while logging clear errors
     return EnvSchema.parse({});
   }
 

@@ -13,11 +13,7 @@ export const navigationRef = createNavigationContainerRef<RootStackParamList>();
 
 let pendingKilledStateDeliveryId: string | null = null;
 
-/**
- * Safely navigates to the delivery detail screen.
- * If the React Navigation tree is not yet mounted (e.g. killed state startup),
- * the deliveryId is queued until onNavigationReady() is called.
- */
+// Navigating to delivery detail
 export function navigateToDeliveryDetail(deliveryId: string): void {
   if (navigationRef.isReady()) {
     navigationRef.navigate("DeliveryDetail", { deliveryId });
@@ -26,10 +22,7 @@ export function navigateToDeliveryDetail(deliveryId: string): void {
   }
 }
 
-/**
- * Called by NavigationContainer's onReady prop.
- * Flushes any pending killed-state deep link once navigation is mounted.
- */
+// Handling navigation ready state
 export function onNavigationReady(): void {
   if (pendingKilledStateDeliveryId && navigationRef.isReady()) {
     const deliveryId = pendingKilledStateDeliveryId;

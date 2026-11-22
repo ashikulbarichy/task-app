@@ -36,6 +36,7 @@ const LIFECYCLE_STEPS: { status: DeliveryStatus; label: string }[] = [
   { status: "completed", label: "Completed" },
 ];
 
+// Rendering delivery detail screen
 export function DeliveryDetailScreen({ route, navigation }: Props) {
   const { deliveryId } = route.params;
   const { data: delivery, isPending, error, refetch } = useDeliveryDetail(deliveryId);
@@ -63,7 +64,6 @@ export function DeliveryDetailScreen({ route, navigation }: Props) {
 
   const isMutating = updateStatusMutation.isPending || completeMutation.isPending;
 
-  // 1. Advance to "started" and automatically start background tracking
   const handleStartDelivery = () => {
     updateStatusMutation.mutate(
       {
@@ -89,7 +89,6 @@ export function DeliveryDetailScreen({ route, navigation }: Props) {
     );
   };
 
-  // 2. Advance to "arrived"
   const handleMarkArrived = () => {
     updateStatusMutation.mutate(
       {
@@ -109,7 +108,6 @@ export function DeliveryDetailScreen({ route, navigation }: Props) {
     );
   };
 
-  // 3. Submit POD form and complete delivery
   const handlePodSubmit = (proof: ProofOfDeliveryForm) => {
     completeMutation.mutate(
       {
@@ -134,7 +132,6 @@ export function DeliveryDetailScreen({ route, navigation }: Props) {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Simulation / Testing Panel */}
       <View style={styles.simulatorCard}>
         <View style={styles.simulatorRow}>
           <View style={styles.simulatorTextContainer}>
@@ -152,14 +149,12 @@ export function DeliveryDetailScreen({ route, navigation }: Props) {
         </View>
       </View>
 
-      {/* Main Order Card */}
       <Card style={styles.orderCard}>
         <View style={styles.statusRow}>
           <Text style={styles.orderNumber}>Order #{delivery.orderNumber}</Text>
           <DeliveryStatusBadge status={delivery.status} />
         </View>
 
-        {/* Linear Lifecycle Progress Bar */}
         <View style={styles.lifecycleContainer}>
           {LIFECYCLE_STEPS.map((step, idx) => {
             const isCurrent = delivery.status === step.status;
@@ -240,7 +235,6 @@ export function DeliveryDetailScreen({ route, navigation }: Props) {
         )}
       </Card>
 
-      {/* Action Buttons Based On Strict Lifecycle */}
       <View style={styles.actionSection}>
         {delivery.status === "pending" && (
           <AppButton
@@ -286,7 +280,6 @@ export function DeliveryDetailScreen({ route, navigation }: Props) {
           </View>
         )}
 
-        {/* Customer Live Tracking View (Stage 4 & 5) */}
         <AppButton
           title="👁 View Customer Live Tracking"
           variant="secondary"
@@ -303,7 +296,6 @@ export function DeliveryDetailScreen({ route, navigation }: Props) {
         <Text style={styles.backButtonText}>← Back to Deliveries</Text>
       </Pressable>
 
-      {/* Proof of Delivery Modal */}
       <ProofOfDeliveryModal
         visible={isPodModalVisible}
         orderNumber={delivery.orderNumber}
@@ -315,6 +307,7 @@ export function DeliveryDetailScreen({ route, navigation }: Props) {
   );
 }
 
+// Getting lifecycle step index
 function getStepIndex(status: DeliveryStatus): number {
   switch (status) {
     case "pending":
@@ -399,10 +392,12 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   lifecycleCircleCompleted: {
-    backgroundColor: "#22C55E",
+    backgroundColor: "#16A34A",
   },
   lifecycleCircleCurrent: {
     backgroundColor: "#2563EB",
+    borderWidth: 2,
+    borderColor: "#93C5FD",
   },
   lifecycleCircleText: {
     fontSize: 12,
@@ -414,62 +409,60 @@ const styles = StyleSheet.create({
   },
   lifecycleStepLabel: {
     fontSize: 11,
-    color: "#94A3B8",
-    fontWeight: "600",
+    color: "#64748B",
+    fontWeight: "500",
   },
   lifecycleStepLabelCurrent: {
-    color: "#0F172A",
+    color: "#2563EB",
     fontWeight: "700",
   },
   divider: {
     height: 1,
     backgroundColor: "#F1F5F9",
-    marginVertical: 16,
+    marginVertical: 14,
   },
   sectionTitle: {
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: "700",
-    color: "#0F172A",
+    color: "#475569",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
     marginBottom: 8,
   },
   fieldLabel: {
     fontSize: 12,
-    fontWeight: "600",
-    color: "#94A3B8",
-    marginTop: 6,
-    textTransform: "uppercase",
+    color: "#64748B",
+    marginTop: 4,
   },
   fieldValue: {
     fontSize: 15,
-    color: "#334155",
-    marginTop: 2,
+    fontWeight: "600",
+    color: "#0F172A",
+    marginBottom: 4,
   },
   itemText: {
     fontSize: 14,
-    color: "#475569",
-    marginTop: 4,
+    color: "#334155",
+    marginBottom: 4,
   },
   lastUpdated: {
-    marginTop: 16,
-    fontSize: 12,
+    fontSize: 11,
     color: "#94A3B8",
     fontStyle: "italic",
-    textAlign: "right",
+    marginTop: 12,
   },
   actionSection: {
     gap: 12,
     marginBottom: 16,
   },
   customerViewButton: {
-    backgroundColor: "#F8FAFC",
-    borderWidth: 1.5,
-    borderColor: "#6366F1",
+    marginTop: 4,
   },
   customerViewButtonText: {
-    color: "#4F46E5",
+    fontWeight: "600",
   },
   completedNotice: {
-    backgroundColor: "#DCFCE7",
+    backgroundColor: "#F0FDF4",
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
@@ -479,21 +472,21 @@ const styles = StyleSheet.create({
   completedNoticeTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#15803D",
+    color: "#16A34A",
     marginBottom: 4,
   },
   completedNoticeText: {
     fontSize: 13,
-    color: "#166534",
+    color: "#15803D",
     textAlign: "center",
   },
   backButton: {
-    alignItems: "center",
     padding: 12,
+    alignItems: "center",
   },
   backButtonText: {
-    color: "#2563EB",
+    color: "#64748B",
+    fontSize: 14,
     fontWeight: "600",
-    fontSize: 15,
   },
 });

@@ -7,10 +7,7 @@ import readline from "readline";
 const TOKEN_CACHE_FILE = path.join(__dirname, ".latest-token.txt");
 const SERVICE_ACCOUNT_FILE = path.join(__dirname, "serviceAccountKey.json");
 
-/**
- * Initializes Firebase Admin SDK.
- * Looks for `serviceAccountKey.json` inside backend-mock/ or root.
- */
+// Initializing Firebase Admin SDK
 function initializeFirebaseAdmin(): boolean {
   if (getApps().length > 0) {
     return true;
@@ -28,8 +25,7 @@ function initializeFirebaseAdmin(): boolean {
 
   if (!serviceAccountPath) {
     console.error("\n❌ ERROR: Firebase Admin SDK requires a service account key!");
-    console.error("Please place 'serviceAccountKey.json' in 'backend-mock/' or root.");
-    console.error("How to obtain it: Firebase Console -> Project Settings -> Service accounts -> Generate new private key.\n");
+    console.error("Please place 'serviceAccountKey.json' in 'backend-mock/' or root.\n");
     return false;
   }
 
@@ -48,9 +44,7 @@ function initializeFirebaseAdmin(): boolean {
   }
 }
 
-/**
- * Resolves the target device FCM token from CLI arguments or cached file.
- */
+// Resolving FCM device token
 function resolveFcmToken(cliToken?: string): string | null {
   if (cliToken && cliToken.trim().length > 0) {
     return cliToken.trim();
@@ -150,7 +144,6 @@ const SCENARIOS: Record<string, NotificationScenario> = {
         body: "This payload has invalid schema types.",
       },
       data: {
-        // Intentionally invalid: missing deliveryId, invalid type for testing Zod safeParse
         type: "unknown_corrupted_type",
         corruptedField: "true",
         invalidNumber: "not-a-number",
@@ -165,6 +158,7 @@ const SCENARIOS: Record<string, NotificationScenario> = {
   },
 };
 
+// Sending push notification
 async function sendNotification(scenarioKey: string, token: string) {
   const scenario = SCENARIOS[scenarioKey];
   if (!scenario) {
@@ -188,6 +182,7 @@ async function sendNotification(scenarioKey: string, token: string) {
   }
 }
 
+// Running notification test CLI
 async function runCli() {
   const isReady = initializeFirebaseAdmin();
   if (!isReady) {
@@ -201,9 +196,6 @@ async function runCli() {
   const token = resolveFcmToken(cliToken);
   if (!token) {
     console.error("\n❌ ERROR: No target FCM token available!");
-    console.error("Options:");
-    console.error("  1. Run the app on your physical device with 'npm run mock:server' active; it will auto-cache the token.");
-    console.error("  2. Or provide the token directly: npm run mock:notify <scenario: 1|2|3> <token>\n");
     process.exit(1);
   }
 
@@ -212,7 +204,6 @@ async function runCli() {
     process.exit(0);
   }
 
-  // Interactive prompt mode
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,

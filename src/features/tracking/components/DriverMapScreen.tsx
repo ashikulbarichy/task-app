@@ -31,6 +31,7 @@ const DEFAULT_REGION: Region = {
   longitudeDelta: 0.015,
 };
 
+// Rendering driver map screen
 export function DriverMapScreen({ deliveryId }: DriverMapScreenProps) {
   const mapRef = useRef<MapView | null>(null);
 
@@ -45,7 +46,6 @@ export function DriverMapScreen({ deliveryId }: DriverMapScreenProps) {
   const [queuedCount, setQueuedCount] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false);
 
-  // 1. Check initial permissions & background tracking status
   useEffect(() => {
     let isMounted = true;
 
@@ -65,7 +65,6 @@ export function DriverMapScreen({ deliveryId }: DriverMapScreenProps) {
       const count = await getQueueLength();
       if (isMounted) setQueuedCount(count);
 
-      // Fetch initial one-time position
       try {
         const initialLoc = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
@@ -96,7 +95,6 @@ export function DriverMapScreen({ deliveryId }: DriverMapScreenProps) {
     };
   }, []);
 
-  // 2. Watch foreground location while screen is mounted
   useEffect(() => {
     if (!hasPermissions) return;
 
@@ -131,7 +129,6 @@ export function DriverMapScreen({ deliveryId }: DriverMapScreenProps) {
     };
   }, [hasPermissions]);
 
-  // 3. Periodic queue count refresh
   useEffect(() => {
     const interval = setInterval(async () => {
       const count = await getQueueLength();
@@ -191,7 +188,6 @@ export function DriverMapScreen({ deliveryId }: DriverMapScreenProps) {
     }
   };
 
-  // If permissions missing, render the rationale screen
   if (hasPermissions === false) {
     return (
       <LocationPermissionScreen
@@ -228,7 +224,6 @@ export function DriverMapScreen({ deliveryId }: DriverMapScreenProps) {
         )}
       </MapView>
 
-      {/* Top Floating Dashboard Card */}
       <Card style={styles.dashboardCard}>
         <View style={styles.statusRow}>
           <View style={styles.statusIndicator}>
@@ -275,12 +270,10 @@ export function DriverMapScreen({ deliveryId }: DriverMapScreenProps) {
         )}
       </Card>
 
-      {/* Floating Recenter Button */}
       <TouchableOpacity style={styles.recenterButton} onPress={handleRecenter}>
         <Text style={styles.recenterIcon}>🎯</Text>
       </TouchableOpacity>
 
-      {/* Bottom Floating Control Panel */}
       <View style={styles.controlPanel}>
         <AppButton
           title={isTracking ? "⏹ Stop Background Tracking" : "▶ Start Background Tracking"}
@@ -306,7 +299,7 @@ const styles = StyleSheet.create({
     left: 16,
     right: 16,
     backgroundColor: "#FFFFFF",
-    borderRadius: 14,
+    borderRadius: 16,
     padding: 16,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -333,7 +326,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   statusDotActive: {
-    backgroundColor: "#22C55E",
+    backgroundColor: "#16A34A",
   },
   statusDotInactive: {
     backgroundColor: "#94A3B8",
@@ -347,30 +340,30 @@ const styles = StyleSheet.create({
     backgroundColor: "#FEF3C7",
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 8,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: "#FDE68A",
   },
   queueBadgeText: {
     fontSize: 12,
-    fontWeight: "700",
+    fontWeight: "600",
     color: "#B45309",
   },
   syncedBadge: {
     backgroundColor: "#DCFCE7",
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 8,
+    borderRadius: 6,
   },
   syncedBadgeText: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#166534",
+    color: "#15803D",
   },
   coordsText: {
     fontSize: 12,
     color: "#64748B",
-    fontVariant: ["tabular-nums"],
+    fontFamily: "monospace",
   },
   recenterButton: {
     position: "absolute",
@@ -384,41 +377,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 3,
-    elevation: 3,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
   recenterIcon: {
-    fontSize: 20,
+    fontSize: 22,
   },
   controlPanel: {
     position: "absolute",
     bottom: 24,
     left: 16,
     right: 16,
-  },
-  trackingToggleButton: {
-    paddingVertical: 16,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  startButton: {
-    backgroundColor: "#2563EB",
-  },
-  stopButton: {
-    backgroundColor: "#DC2626",
-  },
-  trackingToggleText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
   },
 });

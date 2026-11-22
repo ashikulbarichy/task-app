@@ -8,6 +8,7 @@ interface LoadingViewProps {
   style?: ViewStyle;
 }
 
+// Rendering loading view
 export function LoadingView({
   message = "Loading…",
   size = "large",

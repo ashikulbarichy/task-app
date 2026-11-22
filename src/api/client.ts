@@ -7,10 +7,6 @@ import { ZodError, z } from "zod";
 
 import { env } from "@/lib/env";
 
-/**
- * Normalized error categories used across services, React Query caches, and UI.
- * Keeping this closed union lets the global error handler branch exhaustively.
- */
 export const ApiErrorCodeSchema = z.enum([
   "UNAUTHORIZED",
   "FORBIDDEN",
@@ -24,10 +20,6 @@ export const ApiErrorCodeSchema = z.enum([
 
 export type ApiErrorCode = z.infer<typeof ApiErrorCodeSchema>;
 
-/**
- * Expected shape of backend JSON error payloads.
- * Validated defensively with safeParse so malformed backend responses never crash error handling.
- */
 const ServerErrorBodySchema = z.object({
   message: z.string().min(1).optional(),
   error: z.string().min(1).optional(),
@@ -55,24 +47,20 @@ export class ApiError extends Error {
     this.details = params.details;
     this.isRetryable = params.isRetryable;
 
-    // Ensures `instanceof ApiError` works reliably across JS engines (Hermes/JSC).
     Object.setPrototypeOf(this, ApiError.prototype);
   }
 }
 
+// Checking if error is ApiError
 export function isApiError(error: unknown): error is ApiError {
   return error instanceof ApiError;
 }
 
-/**
- * Auth token provider registered at app bootstrap (e.g., reading from SecureStore).
- * Keeping this as an injected callback prevents circular dependencies and keeps
- * `src/api/client.ts` completely free of React or storage library imports.
- */
 export type AuthTokenProvider = () => Promise<string | null> | string | null;
 
 let authTokenProvider: AuthTokenProvider | null = null;
 
+// Setting auth token provider
 export function setAuthTokenProvider(provider: AuthTokenProvider | null): void {
   authTokenProvider = provider;
 }
@@ -89,10 +77,6 @@ export const api: AxiosInstance = axios.create({
   },
 });
 
-/**
- * Request Interceptor:
- * Injects the Bearer token automatically before every outgoing request.
- */
 api.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
     if (authTokenProvider) {
@@ -106,26 +90,17 @@ api.interceptors.request.use(
   (error: unknown) => Promise.reject(normalizeError(error)),
 );
 
-/**
- * Response Interceptor:
- * Passes successful responses straight through, and converts EVERY failure
- * into a predictable `ApiError` instance.
- */
 api.interceptors.response.use(
   (response) => response,
   (error: unknown) => Promise.reject(normalizeError(error)),
 );
 
-/**
- * Normalizes Axios errors, Zod schema validation failures, and unexpected runtime
- * exceptions into a single `ApiError` contract.
- */
+// Normalizing error
 export function normalizeError(error: unknown): ApiError {
   if (isApiError(error)) {
     return error;
   }
 
-  // Catch schema mismatches from service-layer `Schema.parse(...)` calls.
   if (error instanceof ZodError) {
     return new ApiError({
       message: "Received unexpected data format from the server.",
@@ -158,8 +133,8 @@ export function normalizeError(error: unknown): ApiError {
   });
 }
 
+// Normalizing Axios error
 function normalizeAxiosError(error: AxiosError): ApiError {
-  // 1. Timeout (Axios sets ECONNABORTED or ETIMEDOUT)
   if (error.code === "ECONNABORTED" || error.code === "ETIMEDOUT") {
     return new ApiError({
       message: "The request timed out. Please check your connection and try again.",
@@ -169,7 +144,6 @@ function normalizeAxiosError(error: AxiosError): ApiError {
     });
   }
 
-  // 2. No HTTP response at all (offline, airplane mode, DNS failure, server unreachable)
   if (!error.response) {
     return new ApiError({
       message: "Unable to reach the server. Please check your internet connection.",

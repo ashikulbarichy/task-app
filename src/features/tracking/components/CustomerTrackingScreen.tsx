@@ -1,7 +1,6 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import React, { useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Pressable,
   StyleSheet,
   Text,
@@ -29,13 +28,12 @@ const DEFAULT_REGION: Region = {
   longitudeDelta: 0.02,
 };
 
+// Rendering customer tracking screen
 export function CustomerTrackingScreen({ route, navigation }: Props) {
   const { deliveryId } = route.params;
 
-  // Order metadata query
-  const { data: delivery, isPending: isDeliveryPending } = useDeliveryDetail(deliveryId);
+  const { data: delivery } = useDeliveryDetail(deliveryId);
 
-  // Strategy toggle: Strict React Query discipline ensures either polling OR WebSocket is active
   const [strategy, setStrategy] = useState<SyncStrategy>("polling");
 
   const pollingQuery = useCustomerLiveTrackingPolling(
@@ -54,13 +52,11 @@ export function CustomerTrackingScreen({ route, navigation }: Props) {
   const driverMarkerRef = useRef<MapMarker | null>(null);
   const previousCoordsRef = useRef<{ latitude: number; longitude: number } | null>(null);
 
-  // Stable initial coordinate passed to native marker once to prevent prop-update snapping
   const [initialMarkerCoord, setInitialMarkerCoord] = useState<{
     latitude: number;
     longitude: number;
   } | null>(null);
 
-  // Smooth Marker Animation (glides smoothly from previous coordinate to new coordinate)
   useEffect(() => {
     if (!driverLocation) return;
 
@@ -70,7 +66,6 @@ export function CustomerTrackingScreen({ route, navigation }: Props) {
     };
 
     if (!initialMarkerCoord) {
-      // First fix: set initial marker coordinate and center map
       setInitialMarkerCoord(newCoordinate);
       mapRef.current?.animateToRegion({
         ...newCoordinate,
@@ -78,7 +73,6 @@ export function CustomerTrackingScreen({ route, navigation }: Props) {
         longitudeDelta: 0.015,
       });
     } else {
-      // Subsequent fixes: smoothly glide marker over 1200ms using native animator
       if (typeof driverMarkerRef.current?.animateMarkerToCoordinate === "function") {
         driverMarkerRef.current.animateMarkerToCoordinate(newCoordinate, 1200);
       }
@@ -107,7 +101,6 @@ export function CustomerTrackingScreen({ route, navigation }: Props) {
         initialRegion={DEFAULT_REGION}
         showsCompass
       >
-        {/* Customer Destination Marker */}
         {delivery?.latitude && delivery?.longitude && (
           <Marker
             coordinate={{
@@ -120,7 +113,6 @@ export function CustomerTrackingScreen({ route, navigation }: Props) {
           />
         )}
 
-        {/* Live Driver Marker (Animated) */}
         {initialMarkerCoord && (
           <Marker.Animated
             ref={driverMarkerRef}
@@ -139,7 +131,6 @@ export function CustomerTrackingScreen({ route, navigation }: Props) {
         )}
       </MapView>
 
-      {/* Top Floating Header Card */}
       <Card style={styles.topCard}>
         <View style={styles.topHeaderRow}>
           <View>
@@ -151,7 +142,6 @@ export function CustomerTrackingScreen({ route, navigation }: Props) {
             </Text>
           </View>
 
-          {/* Strategy Selector Pills */}
           <View style={styles.strategyContainer}>
             <TouchableOpacity
               style={[
@@ -189,7 +179,6 @@ export function CustomerTrackingScreen({ route, navigation }: Props) {
           </View>
         </View>
 
-        {/* Live Status Row */}
         <View style={styles.statusRow}>
           <View style={styles.indicatorContainer}>
             <View
@@ -215,12 +204,10 @@ export function CustomerTrackingScreen({ route, navigation }: Props) {
         </View>
       </Card>
 
-      {/* Recenter Button */}
       <TouchableOpacity style={styles.recenterButton} onPress={handleRecenter}>
         <Text style={styles.recenterIcon}>🎯</Text>
       </TouchableOpacity>
 
-      {/* Bottom Floating Delivery Info Card */}
       <Card style={styles.bottomCard}>
         <View style={styles.etaRow}>
           <View>
@@ -349,15 +336,15 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#22C55E",
+    backgroundColor: "#94A3B8",
   },
   livePulseDotActive: {
-    backgroundColor: "#3B82F6",
+    backgroundColor: "#16A34A",
   },
   liveStatusText: {
     fontSize: 12,
-    fontWeight: "600",
     color: "#475569",
+    fontWeight: "600",
   },
   timestampText: {
     fontSize: 11,
@@ -366,7 +353,7 @@ const styles = StyleSheet.create({
   recenterButton: {
     position: "absolute",
     right: 16,
-    bottom: 180,
+    bottom: 210,
     width: 48,
     height: 48,
     borderRadius: 24,
@@ -375,14 +362,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 3,
-    elevation: 3,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
   recenterIcon: {
-    fontSize: 20,
+    fontSize: 22,
   },
   bottomCard: {
     position: "absolute",
@@ -391,12 +376,12 @@ const styles = StyleSheet.create({
     right: 16,
     backgroundColor: "#FFFFFF",
     borderRadius: 16,
-    padding: 18,
+    padding: 16,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.12,
-    shadowRadius: 5,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 5,
     borderWidth: 1,
     borderColor: "#E2E8F0",
   },
@@ -409,54 +394,29 @@ const styles = StyleSheet.create({
   etaLabel: {
     fontSize: 12,
     color: "#64748B",
-    fontWeight: "600",
-    textTransform: "uppercase",
+    fontWeight: "500",
   },
   etaValue: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "800",
     color: "#0F172A",
-  },
-  statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
-  },
-  statusBadgeText: {
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  badgeTransit: {
-    backgroundColor: "#DBEAFE",
-  },
-  badgeTransitText: {
-    color: "#1D4ED8",
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  badgeCompleted: {
-    backgroundColor: "#DCFCE7",
-  },
-  badgeCompletedText: {
-    color: "#166534",
-    fontSize: 12,
-    fontWeight: "700",
+    marginTop: 2,
   },
   destinationText: {
     fontSize: 13,
     color: "#475569",
-    marginTop: 4,
+    lineHeight: 18,
     marginBottom: 12,
   },
   backButton: {
-    alignItems: "center",
     paddingVertical: 10,
-    borderRadius: 8,
-    backgroundColor: "#F1F5F9",
+    alignItems: "center",
+    borderTopWidth: 1,
+    borderTopColor: "#F1F5F9",
   },
   backButtonText: {
-    fontSize: 14,
+    color: "#64748B",
+    fontSize: 13,
     fontWeight: "600",
-    color: "#2563EB",
   },
 });

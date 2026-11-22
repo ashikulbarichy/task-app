@@ -18,15 +18,7 @@ const ApiResponseSuccessSchema = z.object({
   message: z.string().optional(),
 });
 
-/**
- * ---------------------------------------------------------------------------
- * BACKEND API CALLS (Plain TS, Zero React imports)
- * ---------------------------------------------------------------------------
- */
-
-/**
- * Registers or updates the device FCM token on the backend.
- */
+// Saving FCM token
 export async function saveFcmToken(
   payload: FcmTokenPayload,
 ): Promise<{ success: boolean }> {
@@ -35,17 +27,13 @@ export async function saveFcmToken(
   return ApiResponseSuccessSchema.parse(response.data);
 }
 
-/**
- * Retrieves the current notification settings for the authenticated user.
- */
+// Fetching notification settings
 export async function getNotificationSettings(): Promise<NotificationSettings> {
   const response = await api.get("/notifications/settings");
   return NotificationSettingsSchema.parse(response.data);
 }
 
-/**
- * Updates notification settings on the backend.
- */
+// Updating notification settings
 export async function updateNotificationSettings(
   settings: NotificationSettings,
 ): Promise<NotificationSettings> {
@@ -54,21 +42,9 @@ export async function updateNotificationSettings(
   return NotificationSettingsSchema.parse(response.data);
 }
 
-/**
- * ---------------------------------------------------------------------------
- * NATIVE NOTIFICATION & FIREBASE HELPERS
- * ---------------------------------------------------------------------------
- */
-
-/**
- * Requests push notification permissions cross-platform.
- * - On Android 13+ (API level 33+), requests runtime `POST_NOTIFICATIONS` permission.
- * - On iOS, requests APNs authorization via Firebase Messaging.
- */
+// Requesting notification permissions
 export async function requestNotificationPermissions(): Promise<boolean> {
   if (Platform.OS === "android") {
-    // Android 13 (API 33+) introduced runtime notification permission.
-    // Below API 33, notifications are automatically enabled at install time.
     if (Platform.Version >= 33) {
       const permission = PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS;
       if (!permission) {
@@ -91,10 +67,7 @@ export async function requestNotificationPermissions(): Promise<boolean> {
   return false;
 }
 
-/**
- * Sets up Android Notification Channels via expo-notifications.
- * Required for Android 8.0+ (API 26+) to display heads-up / high-importance notifications.
- */
+// Creating Android notification channels
 export async function createAndroidNotificationChannels(): Promise<void> {
   if (Platform.OS !== "android") {
     return;
@@ -115,10 +88,7 @@ export async function createAndroidNotificationChannels(): Promise<void> {
   );
 }
 
-/**
- * Retrieves the current device's FCM token from Firebase Cloud Messaging.
- * On iOS, registers the device for remote notifications with APNs first.
- */
+// Fetching FCM token from device
 export async function getFcmToken(): Promise<string | null> {
   try {
     if (Platform.OS === "ios") {
@@ -135,9 +105,7 @@ export async function getFcmToken(): Promise<string | null> {
   }
 }
 
-/**
- * Constructs a typed FcmTokenPayload bundle containing device metadata.
- */
+// Building FCM token payload
 export function buildFcmTokenPayload(token: string): FcmTokenPayload {
   return {
     token,

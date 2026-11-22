@@ -45,6 +45,7 @@ const SETTING_ROWS: readonly SettingRowItem[] = [
   },
 ];
 
+// Rendering notification settings screen
 export function NotificationSettingsScreen() {
   const {
     data: settings,

@@ -7,11 +7,7 @@ import {
   LocationPointSchema,
 } from "./schemas";
 
-/**
- * Plain TypeScript service for dispatching location points to the backend.
- * Zero React dependencies — safe to call from background tasks (expo-task-manager)
- * or the offline queue draining process.
- */
+// Sending location batch
 export async function sendLocationBatch(
   points: LocationPoint[],
   deviceId?: string,
@@ -20,24 +16,18 @@ export async function sendLocationBatch(
     return { success: true, processed: 0 };
   }
 
-  // 1. Validate payload against Zod schema before sending over the wire
   const payload = LocationBatchSchema.parse({
     locations: points,
     deviceId,
     sentAt: Date.now(),
   });
 
-  // 2. Transmit batch to backend
   const response = await api.post("/tracking/batch", payload);
 
-  // 3. Defensively validate backend response structure
   return LocationBatchResponseSchema.parse(response.data);
 }
 
-/**
- * Fetches the latest published driver location for a delivery order.
- * Used by Customer Live Tracking screen.
- */
+// Fetching latest delivery location
 export async function getLatestDeliveryLocation(
   deliveryId: string,
 ): Promise<LocationPoint | null> {

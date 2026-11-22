@@ -13,20 +13,13 @@ import {
   updateNotificationSettings,
 } from "./service";
 
-/**
- * Query key factory for the notifications feature.
- * No inline string arrays allowed anywhere in components or hooks.
- */
 export const notificationKeys = {
   all: ["notifications"] as const,
   settings: () => [...notificationKeys.all, "settings"] as const,
   token: () => [...notificationKeys.all, "token"] as const,
 };
 
-/**
- * Loads user notification preferences.
- * Static/low-churn configuration uses a deliberate 10-minute staleTime.
- */
+// Fetching notification settings query
 export function useNotificationSettings() {
   return useQuery({
     queryKey: notificationKeys.settings(),
@@ -35,10 +28,7 @@ export function useNotificationSettings() {
   });
 }
 
-/**
- * Persists updated notification preferences to the backend and invalidates
- * the settings query so all subscribers receive fresh server truth.
- */
+// Updating notification settings mutation
 export function useUpdateNotificationSettings() {
   const queryClient = useQueryClient();
 
@@ -54,17 +44,13 @@ export function useUpdateNotificationSettings() {
   });
 }
 
-/**
- * Sends the device FCM token to the backend via the service layer.
- */
+// Saving FCM token mutation
 export function useSaveFcmToken() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: saveFcmToken,
     meta: {
-      // Background token sync should not spam error toasts if the user is offline;
-      // global 401 handling still runs cleanly.
       suppressErrorToast: true,
     },
     onSuccess: () => {
@@ -75,13 +61,7 @@ export function useSaveFcmToken() {
   });
 }
 
-/**
- * Orchestrates the full FCM token lifecycle on mount:
- * 1. Creates Android high-importance notification channels.
- * 2. Requests Android 13+ / iOS APNs permissions.
- * 3. Fetches the current FCM token and saves it via React Query mutation.
- * 4. Subscribes to Firebase `onTokenRefresh` so rotated tokens sync automatically.
- */
+// Syncing FCM token hook
 export function useFcmTokenSync(enabled = true) {
   const { mutate: persistToken, isPending: isSyncing } = useSaveFcmToken();
 
@@ -106,7 +86,6 @@ export function useFcmTokenSync(enabled = true) {
 
     void syncToken();
 
-    // Listen for background/runtime token rotations by FCM
     const unsubscribeRefresh = messaging().onTokenRefresh((newToken) => {
       if (newToken) {
         persistToken(buildFcmTokenPayload(newToken));

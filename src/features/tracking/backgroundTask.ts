@@ -12,17 +12,9 @@ import {
 import { safeParseLocationPoint } from "./schemas";
 
 export const BACKGROUND_LOCATION_TASK = "dnp-background-delivery-task";
-
-/**
- * Filter threshold: Discard inaccurate GPS fixes (e.g. cellular tower triangulation / weak GPS).
- */
 export const MAX_ACCEPTABLE_ACCURACY_METERS = 50;
 
-/**
- * Top-level TaskManager registration.
- * Runs in a headless JS environment outside the React component tree.
- * MUST NOT use React hooks or rely on React component state.
- */
+// Defining background location task
 TaskManager.defineTask(BACKGROUND_LOCATION_TASK, async ({ data, error }) => {
   if (error) {
     console.error("[BackgroundTask] Location update error:", error.message);
@@ -38,10 +30,8 @@ TaskManager.defineTask(BACKGROUND_LOCATION_TASK, async ({ data, error }) => {
     return;
   }
 
-  // 1. Read the active delivery ID directly from persistent storage
   const deliveryId = await getActiveDeliveryId();
 
-  // 2. Filter out noisy fixes (> 50m accuracy) and validate with Zod
   const validPoints = locations
     .filter((loc) => {
       const accuracy = loc.coords.accuracy;
@@ -61,14 +51,11 @@ TaskManager.defineTask(BACKGROUND_LOCATION_TASK, async ({ data, error }) => {
     .filter((p): p is NonNullable<typeof p> => p !== null);
 
   if (validPoints.length > 0) {
-    // 3. Enqueue to offline storage (flushes automatically if threshold is reached)
     await enqueuePoints(validPoints);
   }
 });
 
-/**
- * Checks current location permissions for foreground and background.
- */
+// Checking location permissions
 export async function checkLocationPermissions(): Promise<{
   foregroundGranted: boolean;
   backgroundGranted: boolean;
@@ -82,15 +69,11 @@ export async function checkLocationPermissions(): Promise<{
   };
 }
 
-/**
- * Requests Foreground and Background permissions in sequence.
- * On modern Android (11+) and iOS, Background MUST be requested after Foreground is granted.
- */
+// Requesting all location permissions
 export async function requestAllLocationPermissions(): Promise<{
   foregroundGranted: boolean;
   backgroundGranted: boolean;
 }> {
-  // Step 1: Foreground
   let foreground = await Location.getForegroundPermissionsAsync();
   if (!foreground.granted) {
     foreground = await Location.requestForegroundPermissionsAsync();
@@ -100,7 +83,6 @@ export async function requestAllLocationPermissions(): Promise<{
     return { foregroundGranted: false, backgroundGranted: false };
   }
 
-  // Step 2: Background (Requires "Allow all the time" on Android)
   let background = await Location.getBackgroundPermissionsAsync();
   if (!background.granted) {
     background = await Location.requestBackgroundPermissionsAsync();
@@ -112,14 +94,10 @@ export async function requestAllLocationPermissions(): Promise<{
   };
 }
 
-/**
- * Starts background location tracking with battery-conscious throttling and
- * OS-compliant persistent notifications.
- */
+// Starting background tracking
 export async function startBackgroundTracking(options?: {
   deliveryId?: string;
 }): Promise<{ success: boolean; error?: string }> {
-  // 1. Verify permissions
   const { foregroundGranted, backgroundGranted } = await checkLocationPermissions();
   if (!foregroundGranted) {
     return {
@@ -135,12 +113,10 @@ export async function startBackgroundTracking(options?: {
     };
   }
 
-  // 2. Persist active delivery ID if provided
   if (options?.deliveryId) {
     await setActiveDeliveryId(options.deliveryId);
   }
 
-  // 3. Check if already tracking
   const alreadyStarted = await Location.hasStartedLocationUpdatesAsync(
     BACKGROUND_LOCATION_TASK,
   );
@@ -149,20 +125,15 @@ export async function startBackgroundTracking(options?: {
   }
 
   try {
-    // 4. Start OS location updates
     await Location.startLocationUpdatesAsync(BACKGROUND_LOCATION_TASK, {
       accuracy: Location.Accuracy.High,
-      timeInterval: 10000, // 10 seconds
-      distanceInterval: 15, // 15 meters
+      timeInterval: 10000,
+      distanceInterval: 15,
       deferredUpdatesInterval: 10000,
       deferredUpdatesDistance: 15,
       pausesUpdatesAutomatically: false,
       activityType: Location.ActivityType.AutomotiveNavigation,
-
-      // iOS: Shows persistent blue pill/status bar indicator
       showsBackgroundLocationIndicator: true,
-
-      // Android: Persistent foreground service notification (mandatory for Android 8+)
       foregroundService: {
         notificationTitle: "DNP Delivery Active",
         notificationBody: "Broadcasting real-time delivery location to customer.",
@@ -181,10 +152,7 @@ export async function startBackgroundTracking(options?: {
   }
 }
 
-/**
- * Stops background tracking, flushes any remaining offline points,
- * and clears the active delivery tag.
- */
+// Stopping background tracking
 export async function stopBackgroundTracking(): Promise<void> {
   try {
     const isRunning = await Location.hasStartedLocationUpdatesAsync(
@@ -194,26 +162,19 @@ export async function stopBackgroundTracking(): Promise<void> {
       await Location.stopLocationUpdatesAsync(BACKGROUND_LOCATION_TASK);
     }
 
-    // Flush any unsent points remaining in queue
     await flushQueue();
-
-    // Clear active delivery ID
     await setActiveDeliveryId(null);
   } catch (err) {
     console.error("[BackgroundTask] Error stopping location updates:", err);
   }
 }
 
-/**
- * Checks whether the background tracking task is actively running.
- */
+// Checking background tracking status
 export async function isBackgroundTrackingActive(): Promise<boolean> {
   return Location.hasStartedLocationUpdatesAsync(BACKGROUND_LOCATION_TASK);
 }
 
-/**
- * Guides the user to system settings if background permission is restricted or denied.
- */
+// Prompting location settings alert
 export function openLocationSettingsAlert(message: string): void {
   Alert.alert(
     "Location Permission Required",
@@ -231,9 +192,7 @@ export function openLocationSettingsAlert(message: string): void {
   );
 }
 
-/**
- * Shows advice for Android battery optimization (Doze mode) to prevent OS killing tracking.
- */
+// Prompting battery optimization info
 export function promptBatteryOptimizationInfo(): void {
   if (Platform.OS === "android") {
     Alert.alert(
@@ -247,15 +206,7 @@ export function promptBatteryOptimizationInfo(): void {
   }
 }
 
-/**
- * Startup Recovery Logic (Stage 5 Hardening):
- * If the app was terminated / killed by the OS during an active delivery ('started' or 'arrived')
- * and subsequently restarted:
- * 1. Checks persistent storage for an active delivery ID.
- * 2. Fetches current delivery state from backend.
- * 3. If delivery is still in 'started' or 'arrived', verifies and resumes background location updates.
- * 4. If delivery was marked 'completed', automatically halts tracking and clears active storage.
- */
+// Resuming tracking on startup if active
 export async function checkAndResumeTrackingOnStartup(): Promise<void> {
   try {
     const activeDeliveryId = await getActiveDeliveryId();
