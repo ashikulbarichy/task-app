@@ -38,6 +38,7 @@
       "expo-dev-client",
       "@react-native-firebase/app",
       "@react-native-firebase/messaging",
+      "./plugins/withFirebaseManifestFix.js",
       [
         "expo-notifications",
         {
