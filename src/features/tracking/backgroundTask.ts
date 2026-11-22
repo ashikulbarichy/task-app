@@ -10,6 +10,7 @@ import {
   setActiveDeliveryId,
 } from "./locationQueue";
 import { safeParseLocationPoint } from "./schemas";
+import { sendLocationBatch } from "./service";
 
 export const BACKGROUND_LOCATION_TASK = "dnp-background-delivery-task";
 export const MAX_ACCEPTABLE_ACCURACY_METERS = 50;
@@ -98,7 +99,28 @@ export async function requestAllLocationPermissions(): Promise<{
 export async function startBackgroundTracking(options?: {
   deliveryId?: string;
 }): Promise<{ success: boolean; error?: string }> {
-  const { foregroundGranted, backgroundGranted } = await checkLocationPermissions();
+  let servicesEnabled = await Location.hasServicesEnabledAsync();
+  if (!servicesEnabled) {
+    try {
+      await Location.enableNetworkProviderAsync();
+      servicesEnabled = await Location.hasServicesEnabledAsync();
+    } catch {}
+  }
+
+  if (!servicesEnabled) {
+    return {
+      success: false,
+      error: "Location services are turned off. Please enable GPS in device settings.",
+    };
+  }
+
+  let { foregroundGranted, backgroundGranted } = await checkLocationPermissions();
+  if (!foregroundGranted || !backgroundGranted) {
+    const requested = await requestAllLocationPermissions();
+    foregroundGranted = requested.foregroundGranted;
+    backgroundGranted = requested.backgroundGranted;
+  }
+
   if (!foregroundGranted) {
     return {
       success: false,
@@ -141,6 +163,25 @@ export async function startBackgroundTracking(options?: {
         killServiceOnDestroy: false,
       },
     });
+
+    try {
+      const current = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+      const point = safeParseLocationPoint({
+        latitude: current.coords.latitude,
+        longitude: current.coords.longitude,
+        accuracy: current.coords.accuracy,
+        speed: current.coords.speed,
+        heading: current.coords.heading,
+        timestamp: current.timestamp,
+        deliveryId: options?.deliveryId ?? null,
+      });
+      if (point) {
+        void enqueuePoints([point]);
+        void sendLocationBatch([point]);
+      }
+    } catch {}
 
     return { success: true };
   } catch (err) {

@@ -1,5 +1,6 @@
 import * as Location from "expo-location";
-import React, { useEffect, useRef, useState } from "react";
+import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -8,21 +9,23 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import MapView, { Marker, PROVIDER_DEFAULT, Region } from "react-native-maps";
+import MapView, { Marker, Polyline, PROVIDER_DEFAULT, Region } from "react-native-maps";
 
 import { AppButton, Card } from "@/components/ui";
+import { useDeliveryDetail } from "@/features/deliveries/queries";
+import type { RootStackParamList } from "@/features/notifications/navigation";
 import {
   checkLocationPermissions,
   isBackgroundTrackingActive,
   startBackgroundTracking,
   stopBackgroundTracking,
 } from "../backgroundTask";
-import { flushQueue, getQueueLength } from "../locationQueue";
+import { flushQueue, getActiveDeliveryId, getQueueLength } from "../locationQueue";
+import { buildRouteCoordinates } from "../routeUtils";
+import { sendLocationBatch } from "../service";
 import { LocationPermissionScreen } from "./LocationPermissionScreen";
 
-interface DriverMapScreenProps {
-  deliveryId?: string;
-}
+type Props = NativeStackScreenProps<RootStackParamList, "DriverMap">;
 
 const DEFAULT_REGION: Region = {
   latitude: 23.8103,
@@ -32,8 +35,13 @@ const DEFAULT_REGION: Region = {
 };
 
 // Rendering driver map screen
-export function DriverMapScreen({ deliveryId }: DriverMapScreenProps) {
+export function DriverMapScreen({ route }: Props) {
   const mapRef = useRef<MapView | null>(null);
+
+  const [activeDeliveryId, setActiveDeliveryId] = useState<string | undefined>(
+    route?.params?.deliveryId,
+  );
+  const { data: delivery } = useDeliveryDetail(activeDeliveryId || "");
 
   const [hasPermissions, setHasPermissions] = useState<boolean | null>(null);
   const [currentCoords, setCurrentCoords] = useState<{
@@ -45,6 +53,14 @@ export function DriverMapScreen({ deliveryId }: DriverMapScreenProps) {
   const [isTracking, setIsTracking] = useState(false);
   const [queuedCount, setQueuedCount] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false);
+
+  useEffect(() => {
+    if (!activeDeliveryId) {
+      void getActiveDeliveryId().then((id) => {
+        if (id) setActiveDeliveryId(id);
+      });
+    }
+  }, [activeDeliveryId]);
 
   useEffect(() => {
     let isMounted = true;
@@ -76,6 +92,17 @@ export function DriverMapScreen({ deliveryId }: DriverMapScreenProps) {
             accuracy: initialLoc.coords.accuracy,
             heading: initialLoc.coords.heading,
           });
+          void sendLocationBatch([
+            {
+              latitude: initialLoc.coords.latitude,
+              longitude: initialLoc.coords.longitude,
+              accuracy: initialLoc.coords.accuracy,
+              speed: initialLoc.coords.speed,
+              heading: initialLoc.coords.heading,
+              timestamp: initialLoc.timestamp,
+              deliveryId: activeDeliveryId ?? null,
+            },
+          ]);
           mapRef.current?.animateToRegion({
             latitude: initialLoc.coords.latitude,
             longitude: initialLoc.coords.longitude,
@@ -93,7 +120,7 @@ export function DriverMapScreen({ deliveryId }: DriverMapScreenProps) {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [activeDeliveryId]);
 
   useEffect(() => {
     if (!hasPermissions) return;
@@ -115,6 +142,17 @@ export function DriverMapScreen({ deliveryId }: DriverMapScreenProps) {
               accuracy: loc.coords.accuracy,
               heading: loc.coords.heading,
             });
+            void sendLocationBatch([
+              {
+                latitude: loc.coords.latitude,
+                longitude: loc.coords.longitude,
+                accuracy: loc.coords.accuracy,
+                speed: loc.coords.speed,
+                heading: loc.coords.heading,
+                timestamp: loc.timestamp,
+                deliveryId: activeDeliveryId ?? null,
+              },
+            ]);
           },
         );
       } catch (err) {
@@ -127,7 +165,7 @@ export function DriverMapScreen({ deliveryId }: DriverMapScreenProps) {
     return () => {
       sub?.remove();
     };
-  }, [hasPermissions]);
+  }, [hasPermissions, activeDeliveryId]);
 
   useEffect(() => {
     const interval = setInterval(async () => {
@@ -138,13 +176,26 @@ export function DriverMapScreen({ deliveryId }: DriverMapScreenProps) {
     return () => clearInterval(interval);
   }, []);
 
+  const routeCoords = useMemo(() => {
+    if (!delivery?.latitude || !delivery?.longitude || !currentCoords) return [];
+    return buildRouteCoordinates(
+      { latitude: currentCoords.latitude, longitude: currentCoords.longitude },
+      { latitude: delivery.latitude, longitude: delivery.longitude },
+    );
+  }, [
+    currentCoords?.latitude,
+    currentCoords?.longitude,
+    delivery?.latitude,
+    delivery?.longitude,
+  ]);
+
   const handleToggleTracking = async () => {
     if (isTracking) {
       await stopBackgroundTracking();
       setIsTracking(false);
       Alert.alert("Tracking Stopped", "Background location updates are paused.");
     } else {
-      const result = await startBackgroundTracking({ deliveryId });
+      const result = await startBackgroundTracking({ deliveryId: activeDeliveryId });
       if (result.success) {
         setIsTracking(true);
         Alert.alert(
@@ -179,12 +230,25 @@ export function DriverMapScreen({ deliveryId }: DriverMapScreenProps) {
 
   const handleRecenter = () => {
     if (currentCoords) {
-      mapRef.current?.animateToRegion({
-        latitude: currentCoords.latitude,
-        longitude: currentCoords.longitude,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
-      });
+      if (delivery?.latitude && delivery?.longitude && mapRef.current) {
+        mapRef.current.fitToCoordinates(
+          [
+            { latitude: currentCoords.latitude, longitude: currentCoords.longitude },
+            { latitude: delivery.latitude, longitude: delivery.longitude },
+          ],
+          {
+            edgePadding: { top: 80, right: 60, bottom: 200, left: 60 },
+            animated: true,
+          },
+        );
+      } else {
+        mapRef.current?.animateToRegion({
+          latitude: currentCoords.latitude,
+          longitude: currentCoords.longitude,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        });
+      }
     }
   };
 
@@ -220,6 +284,26 @@ export function DriverMapScreen({ deliveryId }: DriverMapScreenProps) {
                 ? `GPS Accuracy: ±${Math.round(currentCoords.accuracy)}m`
                 : "Driver Location"
             }
+          />
+        )}
+
+        {delivery?.latitude && delivery?.longitude && (
+          <Marker
+            coordinate={{
+              latitude: delivery.latitude,
+              longitude: delivery.longitude,
+            }}
+            title="Customer Drop-off"
+            description={delivery.address}
+            pinColor="#2563EB"
+          />
+        )}
+
+        {routeCoords.length > 0 && (
+          <Polyline
+            coordinates={routeCoords}
+            strokeColor="#2563EB"
+            strokeWidth={4}
           />
         )}
       </MapView>

@@ -2,6 +2,7 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import React, { useState } from "react";
 import {
   Alert,
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -9,6 +10,7 @@ import {
   Text,
   View,
 } from "react-native";
+import * as Location from "expo-location";
 
 import {
   AppButton,
@@ -18,7 +20,12 @@ import {
   LoadingView,
 } from "@/components/ui";
 import type { RootStackParamList } from "@/features/notifications/navigation";
-import { startBackgroundTracking } from "@/features/tracking/backgroundTask";
+import {
+  checkLocationPermissions,
+  openLocationSettingsAlert,
+  requestAllLocationPermissions,
+  startBackgroundTracking,
+} from "@/features/tracking/backgroundTask";
 import {
   useCompleteDelivery,
   useDeliveryDetail,
@@ -64,7 +71,47 @@ export function DeliveryDetailScreen({ route, navigation }: Props) {
 
   const isMutating = updateStatusMutation.isPending || completeMutation.isPending;
 
-  const handleStartDelivery = () => {
+  const handleStartDelivery = async () => {
+    let servicesEnabled = await Location.hasServicesEnabledAsync();
+    if (!servicesEnabled) {
+      try {
+        await Location.enableNetworkProviderAsync();
+        servicesEnabled = await Location.hasServicesEnabledAsync();
+      } catch {
+        openLocationSettingsAlert(
+          "Location services (GPS) are turned off. Please enable device location to start delivery tracking.",
+        );
+        return;
+      }
+      if (!servicesEnabled) {
+        openLocationSettingsAlert(
+          "Location services (GPS) are turned off. Please enable device location to start delivery tracking.",
+        );
+        return;
+      }
+    }
+
+    let { foregroundGranted, backgroundGranted } = await checkLocationPermissions();
+    if (!foregroundGranted || !backgroundGranted) {
+      const requested = await requestAllLocationPermissions();
+      foregroundGranted = requested.foregroundGranted;
+      backgroundGranted = requested.backgroundGranted;
+    }
+
+    if (!foregroundGranted) {
+      openLocationSettingsAlert(
+        "Location permission is required to track deliveries. Please allow location access.",
+      );
+      return;
+    }
+
+    if (!backgroundGranted) {
+      openLocationSettingsAlert(
+        "Background location permission ('Allow all the time') is required to track deliveries.",
+      );
+      return;
+    }
+
     updateStatusMutation.mutate(
       {
         id: delivery.id,
@@ -79,6 +126,11 @@ export function DeliveryDetailScreen({ route, navigation }: Props) {
             Alert.alert(
               "Delivery Started",
               "Status set to 'started'. Background location tracking is now actively broadcasting.",
+            );
+          } else {
+            Alert.alert(
+              "Tracking Notice",
+              res.error || "Delivery started, but background tracking could not start.",
             );
           }
         },

@@ -51,6 +51,7 @@ const INITIAL_DELIVERIES: Delivery[] = [
 
 let mockDeliveries: Delivery[] = JSON.parse(JSON.stringify(INITIAL_DELIVERIES));
 const mockTrackingLocations = new Map<string, LocationPoint>();
+let lastKnownDriverLocation: LocationPoint | null = null;
 
 let mockNotificationSettings: NotificationSettings = {
   orderUpdates: true,
@@ -66,6 +67,7 @@ const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 export function resetMockData(): void {
   mockDeliveries = JSON.parse(JSON.stringify(INITIAL_DELIVERIES));
   mockTrackingLocations.clear();
+  lastKnownDriverLocation = null;
   mockNotificationSettings = {
     orderUpdates: true,
     deliveryAlerts: true,
@@ -266,6 +268,7 @@ export async function handleMockRequest(
     const body = parseRequestBody(config.data);
     const locations: LocationPoint[] = body.locations || [];
     for (const loc of locations) {
+      lastKnownDriverLocation = loc;
       if (loc.deliveryId) {
         mockTrackingLocations.set(loc.deliveryId, loc);
       }
@@ -287,6 +290,20 @@ export async function handleMockRequest(
     if (loc) {
       return {
         data: JSON.parse(JSON.stringify(loc)),
+        status: 200,
+        statusText: "OK",
+        headers: {},
+        config,
+      };
+    }
+
+    if (lastKnownDriverLocation) {
+      return {
+        data: {
+          ...lastKnownDriverLocation,
+          deliveryId,
+          timestamp: Date.now(),
+        },
         status: 200,
         statusText: "OK",
         headers: {},

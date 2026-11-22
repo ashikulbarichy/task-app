@@ -12,6 +12,7 @@ app.use(express.json());
 
 let latestRegisteredToken: string | null = null;
 const latestTrackingLocations = new Map<string, any>();
+let lastKnownDriverLocation: any = null;
 
 let notificationSettings = {
   orderUpdates: true,
@@ -194,6 +195,7 @@ app.put("/api/notifications/settings", (req: Request, res: Response) => {
 app.post("/api/tracking/batch", (req: Request, res: Response) => {
   const locations = req.body?.locations || [];
   for (const loc of locations) {
+    lastKnownDriverLocation = loc;
     if (loc.deliveryId) {
       latestTrackingLocations.set(loc.deliveryId, loc);
     }
@@ -212,6 +214,15 @@ app.get("/api/tracking/:deliveryId/latest", (req: Request, res: Response): void 
   const loc = latestTrackingLocations.get(deliveryId);
   if (loc) {
     res.json(loc);
+    return;
+  }
+
+  if (lastKnownDriverLocation) {
+    res.json({
+      ...lastKnownDriverLocation,
+      deliveryId,
+      timestamp: Date.now(),
+    });
     return;
   }
 

@@ -1,5 +1,6 @@
+import * as Location from "expo-location";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Pressable,
   StyleSheet,
@@ -7,7 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import MapView, { Marker, type MapMarker, PROVIDER_DEFAULT, Region } from "react-native-maps";
+import MapView, { Marker, Polyline, PROVIDER_DEFAULT, Region } from "react-native-maps";
 
 import { Card, DeliveryStatusBadge } from "@/components/ui";
 import { useDeliveryDetail } from "@/features/deliveries/queries";
@@ -16,6 +17,8 @@ import {
   useCustomerLiveTrackingPolling,
   useCustomerLiveTrackingWebSocket,
 } from "../queries";
+import { buildRouteCoordinates } from "../routeUtils";
+import { sendLocationBatch } from "../service";
 
 type Props = NativeStackScreenProps<RootStackParamList, "CustomerTracking">;
 
@@ -100,46 +103,101 @@ export function CustomerTrackingScreen({ route, navigation }: Props) {
   const driverLocation = activeQuery.data;
 
   const mapRef = useRef<MapView | null>(null);
-  const driverMarkerRef = useRef<MapMarker | null>(null);
-  const previousCoordsRef = useRef<{ latitude: number; longitude: number } | null>(null);
 
-  const [initialMarkerCoord, setInitialMarkerCoord] = useState<{
-    latitude: number;
-    longitude: number;
-  } | null>(null);
+  useEffect(() => {
+    async function seedDriverLocation() {
+      try {
+        const hasServices = await Location.hasServicesEnabledAsync();
+        if (!hasServices) return;
+        const { status } = await Location.getForegroundPermissionsAsync();
+        if (status === "granted") {
+          const loc = await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.Balanced,
+          });
+          void sendLocationBatch([
+            {
+              latitude: loc.coords.latitude,
+              longitude: loc.coords.longitude,
+              accuracy: loc.coords.accuracy,
+              speed: loc.coords.speed,
+              heading: loc.coords.heading,
+              timestamp: loc.timestamp,
+              deliveryId,
+            },
+          ]);
+        }
+      } catch (err) {
+        console.warn("[CustomerTrackingScreen] Seed location failed:", err);
+      }
+    }
+    void seedDriverLocation();
+  }, [deliveryId]);
+
+  const routeCoords = useMemo(() => {
+    if (
+      !delivery?.latitude ||
+      !delivery?.longitude ||
+      !driverLocation?.latitude ||
+      !driverLocation?.longitude
+    ) {
+      return [];
+    }
+    return buildRouteCoordinates(
+      { latitude: driverLocation.latitude, longitude: driverLocation.longitude },
+      { latitude: delivery.latitude, longitude: delivery.longitude },
+    );
+  }, [
+    driverLocation?.latitude,
+    driverLocation?.longitude,
+    delivery?.latitude,
+    delivery?.longitude,
+  ]);
 
   useEffect(() => {
     if (!driverLocation) return;
 
-    const newCoordinate = {
-      latitude: driverLocation.latitude,
-      longitude: driverLocation.longitude,
-    };
-
-    if (!initialMarkerCoord) {
-      setInitialMarkerCoord(newCoordinate);
-      mapRef.current?.animateToRegion({
-        ...newCoordinate,
-        latitudeDelta: 0.015,
-        longitudeDelta: 0.015,
-      });
+    if (delivery?.latitude && delivery?.longitude && mapRef.current) {
+      mapRef.current.fitToCoordinates(
+        [
+          { latitude: driverLocation.latitude, longitude: driverLocation.longitude },
+          { latitude: delivery.latitude, longitude: delivery.longitude },
+        ],
+        {
+          edgePadding: { top: 80, right: 60, bottom: 200, left: 60 },
+          animated: true,
+        },
+      );
     } else {
-      if (typeof driverMarkerRef.current?.animateMarkerToCoordinate === "function") {
-        driverMarkerRef.current.animateMarkerToCoordinate(newCoordinate, 1200);
-      }
-    }
-
-    previousCoordsRef.current = newCoordinate;
-  }, [driverLocation?.latitude, driverLocation?.longitude, initialMarkerCoord]);
-
-  const handleRecenter = () => {
-    if (driverLocation) {
       mapRef.current?.animateToRegion({
         latitude: driverLocation.latitude,
         longitude: driverLocation.longitude,
         latitudeDelta: 0.015,
         longitudeDelta: 0.015,
       });
+    }
+  }, [driverLocation?.latitude, driverLocation?.longitude, delivery?.latitude, delivery?.longitude]);
+
+  const handleRecenter = () => {
+    if (driverLocation) {
+      if (delivery?.latitude && delivery?.longitude && mapRef.current) {
+        mapRef.current.fitToCoordinates(
+          [
+            { latitude: driverLocation.latitude, longitude: driverLocation.longitude },
+            { latitude: delivery.latitude, longitude: delivery.longitude },
+          ],
+          {
+            edgePadding: { top: 80, right: 60, bottom: 200, left: 60 },
+            animated: true,
+          },
+        );
+      } else {
+        mapRef.current?.animateToRegion({
+          latitude: driverLocation.latitude,
+          longitude: driverLocation.longitude,
+          latitudeDelta: 0.015,
+          longitudeDelta: 0.015,
+        });
+      }
     }
   };
 
@@ -164,13 +222,15 @@ export function CustomerTrackingScreen({ route, navigation }: Props) {
           />
         )}
 
-        {initialMarkerCoord && (
-          <Marker.Animated
-            ref={driverMarkerRef}
-            coordinate={initialMarkerCoord}
+        {driverLocation && (
+          <Marker
+            coordinate={{
+              latitude: driverLocation.latitude,
+              longitude: driverLocation.longitude,
+            }}
             title="Your Delivery Driver"
             description={
-              driverLocation?.speed
+              driverLocation.speed
                 ? `Speed: ${(driverLocation.speed * 3.6).toFixed(1)} km/h`
                 : "Driver Location"
             }
@@ -178,7 +238,15 @@ export function CustomerTrackingScreen({ route, navigation }: Props) {
             <View style={styles.driverMarkerIcon}>
               <Text style={styles.driverMarkerEmoji}>🚚</Text>
             </View>
-          </Marker.Animated>
+          </Marker>
+        )}
+
+        {routeCoords.length > 0 && (
+          <Polyline
+            coordinates={routeCoords}
+            strokeColor="#2563EB"
+            strokeWidth={4}
+          />
         )}
       </MapView>
 
