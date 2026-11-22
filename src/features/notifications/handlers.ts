@@ -5,6 +5,7 @@ import * as Notifications from "expo-notifications";
 import { useEffect } from "react";
 
 import { deliveryKeys } from "@/features/deliveries/queries";
+import { env } from "@/lib/env";
 import { queryClient } from "@/lib/queryClient";
 import { navigateToDeliveryDetail } from "./navigation";
 import {
@@ -91,7 +92,7 @@ async function showForegroundLocalNotification(
       sound: "default",
     },
     trigger: {
-      channelId: "delivery-updates",
+      channelId: env.EXPO_PUBLIC_NOTIFICATION_CHANNEL_ID,
     },
   });
 }

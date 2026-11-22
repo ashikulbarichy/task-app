@@ -5,6 +5,7 @@ import { PermissionsAndroid, Platform } from "react-native";
 import { z } from "zod";
 
 import { api } from "@/api/client";
+import { env } from "@/lib/env";
 import {
   FcmTokenPayloadSchema,
   NotificationSettingsSchema,
@@ -99,16 +100,19 @@ export async function createAndroidNotificationChannels(): Promise<void> {
     return;
   }
 
-  await Notifications.setNotificationChannelAsync("delivery-updates", {
-    name: "Delivery Updates",
-    description: "Notifications for live order updates and driver arrival alerts",
-    importance: Notifications.AndroidImportance.MAX,
-    vibrationPattern: [0, 250, 250, 250],
-    lightColor: "#2563EB",
-    sound: "default",
-    enableVibrate: true,
-    showBadge: true,
-  });
+  await Notifications.setNotificationChannelAsync(
+    env.EXPO_PUBLIC_NOTIFICATION_CHANNEL_ID,
+    {
+      name: "Delivery Updates",
+      description: "Notifications for live order updates and driver arrival alerts",
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: "#2563EB",
+      sound: "default",
+      enableVibrate: true,
+      showBadge: true,
+    },
+  );
 }
 
 /**

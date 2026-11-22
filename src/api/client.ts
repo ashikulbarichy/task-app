@@ -5,6 +5,8 @@ import axios, {
 } from "axios";
 import { ZodError, z } from "zod";
 
+import { env } from "@/lib/env";
+
 /**
  * Normalized error categories used across services, React Query caches, and UI.
  * Keeping this closed union lets the global error handler branch exhaustively.
@@ -75,10 +77,8 @@ export function setAuthTokenProvider(provider: AuthTokenProvider | null): void {
   authTokenProvider = provider;
 }
 
-const API_BASE_URL =
-  process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3000/api";
-
-const REQUEST_TIMEOUT_MS = 15_000;
+const API_BASE_URL = env.EXPO_PUBLIC_API_URL;
+const REQUEST_TIMEOUT_MS = env.EXPO_PUBLIC_API_TIMEOUT_MS;
 
 export const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,

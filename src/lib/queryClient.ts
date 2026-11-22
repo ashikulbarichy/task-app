@@ -9,6 +9,7 @@ import {
 import { AppState, type AppStateStatus, Platform } from "react-native";
 
 import { normalizeError, type ApiError } from "@/api/client";
+import { env } from "@/lib/env";
 
 /**
  * Optional per-query / per-mutation metadata for fine-grained global handler control.
@@ -107,8 +108,8 @@ export const queryClient = new QueryClient({
   }),
   defaultOptions: {
     queries: {
-      // Deliberate baseline (30s) per architecture rules; override per query where needed.
-      staleTime: 30_000,
+      // Deliberate baseline loaded from environment configuration
+      staleTime: env.EXPO_PUBLIC_DEFAULT_STALE_TIME_MS,
       gcTime: 5 * 60_000,
       refetchOnReconnect: true,
       refetchOnWindowFocus: true,

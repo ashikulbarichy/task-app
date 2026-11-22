@@ -20,6 +20,7 @@ import {
   type RootStackParamList,
 } from "@/features/notifications/navigation";
 import { useFcmTokenSync } from "@/features/notifications/queries";
+import { env } from "@/lib/env";
 import {
   queryClient,
   registerGlobalErrorHandlers,
@@ -39,7 +40,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
  * Matches the scheme defined in app.json ("dnpdelivery").
  */
 const linking = {
-  prefixes: ["dnpdelivery://", "https://dnp.app"],
+  prefixes: [`${env.EXPO_PUBLIC_APP_SCHEME}://`, "https://dnp.app"],
   config: {
     screens: {
       DeliveriesList: "",

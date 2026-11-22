@@ -4,7 +4,7 @@ import fs from "fs";
 import path from "path";
 
 const app = express();
-const PORT = Number(process.env.PORT || 3000);
+const PORT = Number(process.env.MOCK_SERVER_PORT || process.env.PORT || 3000);
 const TOKEN_CACHE_FILE = path.join(__dirname, ".latest-token.txt");
 
 app.use(cors());
