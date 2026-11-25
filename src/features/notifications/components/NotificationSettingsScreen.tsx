@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Share,
   StyleSheet,
   Switch,
   Text,
@@ -19,6 +20,7 @@ import {
   useUpdateNotificationSettings,
 } from "../queries";
 import type { NotificationSettings } from "../schemas";
+import { buildFcmTokenPayload, getFcmToken, saveFcmToken } from "../service";
 
 type SettingKey = keyof NotificationSettings;
 
@@ -55,6 +57,7 @@ const SETTING_ROWS: readonly SettingRowItem[] = [
 export function NotificationSettingsScreen() {
   const queryClient = useQueryClient();
   const [isTriggering, setIsTriggering] = useState(false);
+  const [isSyncingToken, setIsSyncingToken] = useState(false);
 
   const {
     data: settings,
@@ -110,6 +113,34 @@ export function NotificationSettingsScreen() {
     resetMockData();
     void queryClient.invalidateQueries({ queryKey: deliveryKeys.all });
     Alert.alert("Data Reset", "Mock deliveries have been restored to initial state.");
+  };
+
+  const handleSyncAndShowToken = async () => {
+    setIsSyncingToken(true);
+    try {
+      const token = await getFcmToken();
+      if (!token) {
+        Alert.alert(
+          "FCM Token Unavailable",
+          "Could not retrieve FCM token. Ensure notification permission is granted.",
+        );
+        return;
+      }
+      await saveFcmToken(buildFcmTokenPayload(token));
+      Alert.alert("FCM Token Synced", token, [
+        { text: "Close", style: "cancel" },
+        {
+          text: "Share / Copy",
+          onPress: () => {
+            void Share.share({ message: token });
+          },
+        },
+      ]);
+    } catch {
+      Alert.alert("Sync Failed", "Could not sync FCM token with server.");
+    } finally {
+      setIsSyncingToken(false);
+    }
   };
 
   if (isPending) {
@@ -174,6 +205,12 @@ export function NotificationSettingsScreen() {
           variant="secondary"
           onPress={handleTriggerDemoNotification}
           isLoading={isTriggering}
+        />
+        <AppButton
+          title="📲 Sync & Show FCM Token"
+          variant="outline"
+          onPress={handleSyncAndShowToken}
+          isLoading={isSyncingToken}
         />
         <AppButton
           title="↻ Reset Mock Data"
